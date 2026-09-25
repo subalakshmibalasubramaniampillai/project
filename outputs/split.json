@@ -1,0 +1,1 @@
+{"split": "patient-level stratified 75/25", "train_patients": 576, "test_patients": 192, "data_source": "pima-indians", "n_patients": 768, "n_visits": 3072}

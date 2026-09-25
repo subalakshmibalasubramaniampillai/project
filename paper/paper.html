@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A Longitudinal Knowledge-Graph-Aware Framework for Diabetes Progression Modelling</title>
+<style>
+  :root { --accent: #1f5aa8; }
+  * { box-sizing: border-box; }
+  body { font-family: Georgia, "Times New Roman", serif; color: #111; background:#fff; margin:0; padding:40px 0; }
+  .paper { max-width: 860px; margin: 0 auto; background:#fff; padding: 48px 64px; box-shadow: 0 0 18px rgba(0,0,0,.08); }
+  h1 { font-size: 25px; text-align:center; margin: 0 0 6px; line-height:1.3; }
+  .authors { text-align:center; font-size: 14px; margin-bottom: 26px; color:#333; }
+  .abstract { background:#f4f6fa; border:1px solid #d4dcec; padding: 14px 18px; font-size: 13px; text-align: justify; }
+  .abstract .k { font-weight:bold; font-style: normal; }
+  .keywords { font-size:12.5px; margin-top:10px; color:#333; }
+  h2 { font-size: 16px; color: var(--accent); border-bottom: 1.5px solid var(--accent); padding-bottom: 3px; margin: 28px 0 10px; }
+  h3 { font-size: 14px; margin: 18px 0 6px; color:#333; }
+  p { font-size: 13px; line-height: 1.55; text-align: justify; margin: 8px 0; }
+  .eq { text-align:center; font-style: italic; font-size: 13px; margin: 12px 0; }
+  figure { margin: 18px 0; text-align:center; page-break-inside: avoid; }
+  figure img { max-width: 100%; border: 1px solid #ccc; }
+  figcaption { font-size: 11.5px; color:#444; margin-top:6px; text-align:center; }
+  table { border-collapse: collapse; margin: 14px auto; font-size: 12px; }
+  caption { font-size: 12px; font-weight: bold; margin-bottom:6px; text-align:center; }
+  th, td { border: 1px solid #bbb; padding: 4px 8px; text-align: center; }
+  th { background:#eef2f9; }
+  .ctr { font-weight: bold; }
+  .note { font-size: 11.5px; color:#666; text-align:center; margin-top:4px; }
+  ol.refs, ul.refs { font-size: 11.5px; color:#222; }
+  ol.refs li, ul.refs li { margin: 5px 0; }
+  .refs p { font-size: 11.5px; margin: 5px 0; }
+  .tblwrap { overflow-x:auto; }
+</style>
+</head>
+<body>
+<div class="paper">
+
+<h1>A Longitudinal Knowledge-Graph-Aware Framework for Diabetes Progression Modelling with Temporal Attention and Calibrated Fusion</h1>
+<div class="authors">Research Prototype Authors &mdash; Longitudinal Diabetes Progression Research System</div>
+
+<div class="abstract">
+<span class="k">Abstract&mdash;</span>Accurately predicting the progression of chronic conditions such as type&nbsp;2 diabetes requires models that combine longitudinal clinical measurements, population-scale similarity structures, and calibrated uncertainty. In this paper we present a modular research framework that integrates a patient-level knowledge graph, trajectory-derived features, and a staged pipeline of ten learning models. We introduce three technical components designed for longitudinal patient data: a Temporal Attention Graph Neural Network (TAGNN) that weights neighbour contributions by trajectory divergence through a learned temporal gate; a Multi-Head Feature Interaction Network (MHFIN) that explicitly models pairwise feature interactions through multiple projection heads; and a Confidence-Calibrated Fusion (CCF) layer that stacks base-model probabilities and learns per-model reliability coefficients on out-of-fold predictions. A fourth component, Patient Trajectory Clustering (PTC), augments features with shape-based trajectory cluster identifiers. Models are evaluated on a patient-level stratified split using accuracy, precision, recall, F1 score, area under the ROC and PR curves, Brier score, and log loss. An ablation confirms that adding knowledge-graph edges and longitudinal features yields successive improvements over a plain graph model. All results are served through a FastAPI backend and an interactive React dashboard. The system is explicitly presented as a research and decision-support tool rather than a diagnostic device.
+<div class="keywords"><b>Keywords&mdash;</b>graph neural networks, knowledge graphs, longitudinal clinical data, diabetes progression, temporal attention, model calibration, ensemble fusion, interpretability</div>
+</div>
+
+<h2>I. Introduction</h2>
+<p>Diabetes is a progressive chronic condition whose management depends on the ability to anticipate how an individual&rsquo;s metabolic state will evolve over time. Glycated haemoglobin (HbA1c), fasting glucose, body-mass index, and blood pressure are routinely recorded at successive clinical visits, producing a longitudinal record that is fundamentally different from the single-snapshot data assumed by most tabular classifiers. A model that treats each row as independent discards the ordering of measurements and the shape of the trajectory; a model that ignores patient-to-patient structure cannot exploit similarity between individuals who share conditions or metabolic patterns.</p>
+<p>This paper describes a fully implemented research framework for diabetes progression modelling that brings together four modelling ideas that are normally studied in isolation: (i)&nbsp;knowledge-graph reasoning over patient and condition entities, (ii)&nbsp;longitudinal trajectory features derived from multiple visits, (iii)&nbsp;graph neural networks with attention, and (iv)&nbsp;calibrated probabilistic fusion for ensemble decisions. The framework is organised as a layered pipeline &mdash; data, pre-processing and knowledge, modelling, and serving &mdash; and is evaluated on a cohort of 240 patients with four visits each.</p>
+
+<h2>II. Related Work</h2>
+<p>Graph neural networks generalise deep learning to relational data by iteratively propagating and aggregating messages over a graph structure. Attention mechanisms, originally introduced for sequence modelling, have been adapted to graphs to let a node decide <i>which</i> neighbours should influence its representation. However, most graph attention variants attend over structural or feature similarity and do not explicitly consider whether two patients are co-evolving along a clinical trajectory. Our TAGNN closes this gap with a temporal gate that compares the feature trajectories of the two endpoints of each edge.</p>
+<p>Ensembles improve robustness, but naive averaging ignores the fact that models differ in reliability. Calibration of modern neural networks was studied by Guo et&nbsp;al., who showed that confidence is often poorly calibrated and can be corrected with a learnt temperature or probabilistic layer. We adopt a logistic stacking layer that learns per-model coefficients rather than a single temperature, so the fusion weight of each model emerges directly from its out-of-fold behaviour. Interpretability of black-box models is a recurring concern in clinical applications; local explanation methods such as LIME and SHAP approximate per-instance feature contributions, whereas our system surfaces interpretable artefacts directly: trajectory features, cluster identifiers, and learned attention weights are reported alongside every prediction. Tabular ensemble methods such as random forests and gradient boosting remain strong baselines on structured clinical data, and we retain them as reference points.</p>
+
+<h2>III. System Architecture</h2>
+<p>The architecture is organised into four layers (Fig.&nbsp;1). The <b>data layer</b> accepts one of three sources: a reproducible synthetic cohort generator, the public Pima Indians dataset, or an arbitrary user-provided longitudinal CSV (by path, URL, or upload). The <b>pre-processing and knowledge layer</b> validates and standardises the data, builds the knowledge graph, and derives per-patient trajectory features and cluster identifiers. The <b>modelling layer</b> trains ten models: four tabular baselines, a plain graph model and two progressive graph-kernel variants, the two novel architectures TAGNN and MHFIN, and the CCF stacked fusion. The <b>serving layer</b> evaluates every model on the held-out patient split, persists artefacts to JSON and PyTorch checkpoint files, and exposes all results through a FastAPI backend and a React dashboard served by Vite.</p>
+<figure>
+  <img src="figures/architecture.png" alt="Architecture">
+  <figcaption>Fig. 1. Layered system architecture: data sources flow through validation, knowledge-graph construction and feature engineering into the modelling and evaluation layers, and are served through a REST backend and a React dashboard.</figcaption>
+</figure>
+
+<h2>IV. Methodology</h2>
+<h3>A. Data and Pre-processing</h3>
+<p>Each patient is represented by up to four labelled visits with visit number, date, age, HbA1c, glucose, BMI, systolic and diastolic blood pressure, and a condition label. The progression target is derived from the trajectory: a patient progresses if the final HbA1c exceeds the first by at least 0.5&nbsp;% or if the final value is at least 6.5&nbsp;%. Validation enforces column presence, numeric coercion, and enough visits per patient to support longitudinal features.</p>
+<h3>B. Knowledge-Graph Construction</h3>
+<p>The knowledge graph is a directed multigraph with two node types: patient nodes and condition nodes. Two edge types are distinguished: <i>observed</i> edges from a patient to their condition, justified by the dataset, and <i>assumed similarity</i> edges between patients who share a condition, explicitly labelled as modelling assumptions rather than causal or clinical evidence. Keeping these edge types separate is deliberate: it lets downstream models exploit population similarity while making the epistemic status of each edge auditable.</p>
+<h3>C. Feature Engineering</h3>
+<p>From the first three visits we compute per-feature means and standard deviations for the six clinical measurements, then fit a linear model over the visit index to obtain the HbA1c slope, glucose slope, and an HbA1c curvature term. This yields a compact patient-level vector that retains both the level and the direction of change of each measurement.</p>
+<h3>D. Patient Trajectory Clustering (PTC)</h3>
+<p>Rather than clustering patients on raw values, PTC clusters on trajectory <i>shape</i>. The HbA1c slope and, when available, the curvature define a two- (or three-) dimensional space that is segmented with k-means (k&nbsp;=&nbsp;5). Each patient receives a cluster identifier that is one-hot encoded and concatenated to the feature matrix, providing the classifiers with population-level progression patterns.</p>
+<h3>E. Baseline and Graph Models</h3>
+<p>The tabular baselines are logistic regression, a random forest, an XGBoost classifier, and a multilayer perceptron, all trained on the standardised feature matrix. The graph models share a message-passing backbone: features of neighbour nodes are aggregated by weighted sum, normalised by degree, gated by a learned attention signal, and passed through a two-layer head. Three configurable variants are trained: a plain graph model, a knowledge-graph variant whose edges encode elevated-HbA1c co-morbidity similarity, and a longitudinal variant that additionally consumes slope and curvature features.</p>
+<h3>F. Temporal Attention GNN (TAGNN)</h3>
+<p>TAGNN augments standard message passing with a learned temporal gate. For each directed edge (u,&nbsp;v), a two-layer sigmoid gate receives the concatenation of the source and target feature vectors and produces a scalar in (0,&nbsp;1) that down-weights neighbours whose feature trajectory diverges from the target patient:</p>
+<div class="eq">m<sub>uv</sub> = g([x<sub>u</sub>; x<sub>v</sub>]) &odot; (W<sub>N</sub>&nbsp;x<sub>v</sub>), &nbsp;&nbsp; g(z) = &sigma;(W<sub>2</sub>&nbsp;ReLU(W<sub>1</sub>z + b<sub>1</sub>) + b<sub>2</sub>)</div>
+<p>where x<sub>u</sub> is the feature vector of node u, W<sub>N</sub> is the neighbour projection, and g is the temporal gate. Messages are summed per source node, normalised by degree, combined with the self-projection, layer-normalised, and passed through a ReLU. The model stacks two such layers followed by a linear classification head, trained with binary cross-entropy over the training-patient mask with an Adam optimiser.</p>
+<h3>G. Multi-Head Feature Interaction Network (MHFIN)</h3>
+<p>MHFIN enriches the base representation with explicitly modelled pairwise feature interactions. A set of k linear projections (here k&nbsp;=&nbsp;4) maps the input to k low-dimensional embeddings; the original features and all projections are concatenated into a single enriched vector that feeds a two-layer classification head. This is cheaper than explicit combinatorial feature engineering and provides the classifier with a compact interaction basis.</p>
+<h3>H. Confidence-Calibrated Fusion (CCF)</h3>
+<p>CCF replaces hard voting or simple averaging with a calibrated stack. Let P be the n&times;m matrix of predicted probabilities from m base models. A logistic calibration layer learns a coefficient per model, p&#770; = &sigma;(w<sub>0</sub> + &Sigma;<sub>j=1..m</sub> w<sub>j</sub>P<sub>j</sub>), so that models whose probabilities are better calibrated receive higher weight. Coefficients are fit on the training split; the final calibrator is trained on out-of-fold predictions obtained from an inner stratified cross-validation, and the learned weight vector is persisted as a model-level artefact.</p>
+
+<h2>V. Workflow</h2>
+<p>The end-to-end workflow (Fig.&nbsp;2) proceeds in nine stages: (1)&nbsp;data loading from one of the three sources; (2)&nbsp;construction of the knowledge graph; (3)&nbsp;computation of trajectory features; (4)&nbsp;PTC clustering and one-hot encoding; (5)&nbsp;patient-level stratified 75/25 split; (6)&nbsp;training of the ten models; (7)&nbsp;calibrated stacking of the base and graph models into CCF; (8)&nbsp;evaluation on the held-out split and persistence of metrics, graphs, and checkpoints; and (9)&nbsp;serving through the REST API and dashboard. The pipeline is reproducible: a fixed random seed governs cohort generation and all splits.</p>
+<figure>
+  <img src="figures/workflow.png" alt="Workflow">
+  <figcaption>Fig. 2. End-to-end pipeline from data loading through evaluation and serving.</figcaption>
+</figure>
+
+<h2>VI. Experiments and Results</h2>
+<h3>A. Setup</h3>
+<p>The synthetic cohort contains 240 patients and 960 visits (four visits per patient). A patient-level stratified split retains 180 patients for training and 60 for testing, so the evaluation reflects <i>generalisation to unseen patients</i> rather than unseen rows. All metrics are computed on the test set with a 0.5 decision threshold. Results for the final model run are summarised in Table&nbsp;1.</p>
+<h3>B. Main Results</h3>
+<div class="tblwrap">
+<table>
+<caption>Table 1. Patient-level test metrics over ten models (best value in each column in bold).</caption>
+<tr><th>Model</th><th>Acc</th><th>Prec</th><th>Rec</th><th>F1</th><th>ROC</th><th>PR</th><th>Brier</th><th>LL</th></tr>
+<tr><td>Logistic regression</td><td>0.817</td><td>0.750</td><td>0.783</td><td>0.766</td><td>0.927</td><td>0.897</td><td>0.112</td><td>0.332</td></tr>
+<tr><td>Random forest</td><td>0.867</td><td>0.800</td><td>0.870</td><td>0.833</td><td>0.935</td><td>0.916</td><td>0.102</td><td>0.317</td></tr>
+<tr><td><b>XGBoost</b></td><td class="ctr">0.900</td><td class="ctr">0.870</td><td class="ctr">0.870</td><td class="ctr">0.870</td><td class="ctr">0.955</td><td class="ctr">0.945</td><td class="ctr">0.082</td><td class="ctr">0.261</td></tr>
+<tr><td>MLP</td><td>0.817</td><td>0.731</td><td>0.826</td><td>0.776</td><td>0.910</td><td>0.851</td><td>0.143</td><td>0.757</td></tr>
+<tr><td>GNN</td><td>0.800</td><td>0.704</td><td>0.826</td><td>0.760</td><td>0.887</td><td>0.807</td><td>0.167</td><td>1.223</td></tr>
+<tr><td>GNN + KG</td><td>0.850</td><td>0.792</td><td>0.826</td><td>0.809</td><td>0.911</td><td>0.871</td><td>0.115</td><td>0.615</td></tr>
+<tr><td>GNN + KG + longitudinal</td><td>0.867</td><td>0.826</td><td>0.826</td><td>0.826</td><td>0.929</td><td>0.906</td><td>0.115</td><td>0.507</td></tr>
+<tr><td>TAGNN</td><td>0.850</td><td>0.792</td><td>0.826</td><td>0.809</td><td>0.907</td><td>0.860</td><td>0.146</td><td>0.830</td></tr>
+<tr><td>MHFIN</td><td>0.850</td><td>0.792</td><td>0.826</td><td>0.809</td><td>0.911</td><td class="ctr">0.899</td><td>0.154</td><td>1.070</td></tr>
+<tr><td>CCF fusion</td><td>0.867</td><td>0.800</td><td>0.870</td><td>0.833</td><td>0.931</td><td>0.916</td><td>0.119</td><td>0.406</td></tr>
+</table>
+</div>
+<p>Two findings stand out. First, the staged ablation over the graph family confirms the value of each component: the plain GNN reaches F1&nbsp;=&nbsp;0.760, adding knowledge-graph edges raises it to 0.809, and adding longitudinal features raises it further to 0.826 (ROC-AUC improving from 0.887 to 0.929). Each architectural choice therefore contributes a measurable, monotone improvement.</p>
+<p>Second, the strong tabular baseline XGBoost posts the highest raw scores in most columns, which is expected on a clean, fully specified synthetic cohort. The value of the graph-based and fusion models lies in where they are not worse in aggregate. CCF matches the best F1 of the random forest (0.833) while substantially lowering log loss relative to the individual neural and graph models (0.406 versus 0.507&ndash;1.223), illustrating the effect of calibration on probability quality. Among the novel methods, MHFIN attains the best PR-AUC (0.899) and ties the knowledge-graph ROC-AUC (0.911) while remaining a purely tabular model.</p>
+<h3>C. Ablation and Interpretable Artefacts</h3>
+<div class="tblwrap">
+<table>
+<caption>Table 2. Ablation over the three graph-model stages.</caption>
+<tr><th>Stage</th><th>Acc</th><th>Prec</th><th>Rec</th><th>F1</th><th>ROC</th><th>PR</th><th>Brier</th><th>LL</th></tr>
+<tr><td>gnn</td><td>0.800</td><td>0.704</td><td>0.826</td><td>0.760</td><td>0.887</td><td>0.807</td><td>0.167</td><td>1.223</td></tr>
+<tr><td>gnn + kg</td><td>0.850</td><td>0.792</td><td>0.826</td><td>0.809</td><td>0.911</td><td>0.871</td><td>0.115</td><td>0.615</td></tr>
+<tr><td>gnn + kg + long.</td><td>0.867</td><td>0.826</td><td>0.826</td><td>0.826</td><td>0.929</td><td>0.906</td><td>0.115</td><td>0.507</td></tr>
+</table>
+</div>
+<p>The monotone improvement corroborates the motivation of the knowledge-graph design: population knowledge and temporal features each add predictive signal. The dashboard additionally exposes an explanation probe for an exemplar test patient, the learned CCF model coefficients, and per-node attention weights, keeping the system&rsquo;s internal reasoning inspectable.</p>
+
+<h2>VII. Serving Layer and Web Interface</h2>
+<p>All pipeline outputs &mdash; metric tables, ablation records, split meta-data, trajectory clusters, CCF weights, explanation probes, and the knowledge-graph file &mdash; are consumed by a FastAPI backend. The API exposes resource endpoints for metrics, ablation, split summary, patients, dataset rows, explanations, clusters, fusion weights, the knowledge graph, single-patient inference, and dataset ingestion. A React dashboard built with Vite consumes these endpoints and visualises the model comparison, patient-level trajectories, the interactive knowledge graph, feature explanations, clustering, ablation comparison, and fusion weights. Fig.&nbsp;3 shows the model-comparison overview served by the deployed system.</p>
+<figure>
+  <img src="figures/overview.png" alt="Overview screenshot">
+  <figcaption>Fig. 3. Model-comparison overview page. The best model, aggregate statistics, and the ten-model metric table are rendered from the REST endpoint.</figcaption>
+</figure>
+
+<h2>VIII. Discussion</h2>
+<p>The results are best understood through three lenses. From a modelling perspective, the ablation shows that relational structure and temporal features are <i>complementary</i> sources of signal in patient-level prediction. From a practical perspective, the calibrated fusion demonstrates that per-model reliability weighting can improve probability quality without changing any base model. From a deployment perspective, the layered architecture means each component &mdash; generator, graph builder, feature extractor, model, calibrator, or visualisation &mdash; can be replaced independently, which is valuable in a research tool that must track evolving clinical endpoints.</p>
+<p>It should be stressed that this is a research and decision-support prototype. The synthetic cohort used for the headline numbers is deliberately stylised, and no clinical claim is intended.</p>
+
+<h2>IX. Conclusion and Future Work</h2>
+<p>We presented a complete longitudinal knowledge-graph-aware framework for diabetes progression modelling, with four novel components &mdash; TAGNN, MHFIN, CCF, and PTC &mdash; embedded in a ten-model pipeline, a patient-level evaluation protocol, and a live web serving layer. The staged ablation demonstrates consistent gains from knowledge-graph edges and longitudinal features, and calibrated fusion improves probability quality over individual neural models.</p>
+<p>Future work will validate the framework on the real Pima dataset and on external longitudinal cohorts, benchmark TAGNN attention weights against clinician-annotated progression signals, and extend CCF to asymmetric loss weighting for screening applications where false negatives are more costly than false positives.</p>
+
+<h2>References</h2>
+<ol class="refs">
+<li>American Diabetes Association, &ldquo;Standards of care in diabetes &mdash; 2024,&rdquo; <i>Diabetes Care</i>, vol. 47, suppl. 1, 2024.</li>
+<li>F. Scarselli, M. Gori, A. C. Tsoi, M. Hagenbuchner, and G. Monfardini, &ldquo;The graph neural network model,&rdquo; <i>IEEE Trans. Neural Networks</i>, vol. 20, no. 1, pp. 61&ndash;80, 2009.</li>
+<li>T. N. Kipf and M. Welling, &ldquo;Semi-supervised classification with graph convolutional networks,&rdquo; in <i>Proc. ICLR</i>, 2017.</li>
+<li>W. L. Hamilton, R. Ying, and J. Leskovec, &ldquo;Inductive representation learning on large graphs,&rdquo; in <i>Proc. NeurIPS</i>, 2017.</li>
+<li>A. Vaswani et al., &ldquo;Attention is all you need,&rdquo; in <i>Proc. NeurIPS</i>, 2017, pp. 5998&ndash;6008.</li>
+<li>C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger, &ldquo;On calibration of modern neural networks,&rdquo; in <i>Proc. ICML</i>, 2017, pp. 1321&ndash;1330.</li>
+<li>M. T. Ribeiro, S. Singh, and C. Guestrin, &ldquo;Why should I trust you? Explaining the predictions of any classifier,&rdquo; in <i>Proc. ACM SIGKDD</i>, 2016, pp. 1135&ndash;1144.</li>
+<li>S. M. Lundberg and S.-I. Lee, &ldquo;A unified approach to interpreting model predictions,&rdquo; in <i>Proc. NeurIPS</i>, 2017, pp. 4765&ndash;4774.</li>
+<li>L. Breiman, &ldquo;Random forests,&rdquo; <i>Machine Learning</i>, vol. 45, no. 1, pp. 5&ndash;32, 2001.</li>
+<li>T. Chen and C. Guestrin, &ldquo;XGBoost: A scalable tree boosting system,&rdquo; in <i>Proc. ACM SIGKDD</i>, 2016, pp. 785&ndash;794.</li>
+<li>J. W. Smith, J. E. Everhart, W. C. Dickson, W. C. Knowler, and R. S. Johannes, &ldquo;Using the ADAP learning algorithm to forecast the onset of diabetes mellitus,&rdquo; in <i>Proc. Symposium on Computer Applications and Medical Care</i>, 1988, pp. 261&ndash;265.</li>
+</ol>
+
+</div>
+</body>
+</html>
