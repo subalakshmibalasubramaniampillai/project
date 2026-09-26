@@ -1,3 +1,27 @@
-\subsection{Knowledge graph and data scarcity}
+\subsection{Knowledge graph under data scarcity}
 \label{sec:kgeff}
-PENDING
+Because ontology-based representations are expected to help most when
+training data are limited, we retrained TKGN with and without the knowledge
+graph on 5, 10 and 25\% of the training patients in three grouped repeats,
+with identical patient subsets and seeds for both variants
+(Table~\ref{tab:kg}). The hypothesis was not supported. For readmission the
+paired differences were close to zero at every size (\KgReadmitFive{},
+\KgReadmitTen{} and \KgReadmitTwentyFive{} AUROC at 5, 10 and 25\%), with
+standard deviations several times larger than the means. For escalation the
+flat-embedding variant was never worse on average (\KgEscFive{},
+\KgEscTen{} and \KgEscTwentyFive{}). On this cohort, whose diagnosis codes
+are mostly truncated to three characters, sharing information along the
+ICD-9-CM hierarchy and the co-morbidity graph therefore did not improve
+discrimination at any training-set size we examined.
+
+\begin{table}[t]
+  \centering
+  \caption{TKGN with and without the knowledge graph (KG) trained on subsets
+  of the training patients. Mean test AUROC over three grouped repeats with
+  paired subsets and seeds; $\Delta$ = TKGN minus TKGN without KG; Wins:
+  repeats in which the KG variant was better.}
+  \label{tab:kg}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \input{tables/tab_kg.tex}
+\end{table}

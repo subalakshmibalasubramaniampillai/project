@@ -25,7 +25,27 @@ Not a diagnostic tool.
 | **TKGN-B** | TKGN trained as a residual on top of an **out-of-fold LightGBM logit**, i.e. one extra "boosting stage" implemented by a knowledge-aware sequence model |
 | **Leakage-controlled protocol** | patient-disjoint repeated splits (5×), prospective temporal split, validation-only tuning and thresholds, clustered-bootstrap CIs, DeLong tests, calibration, ablations, learning curves, subgroup/fairness audit |
 
-## Results
+## Results at a glance
+
+Test AUROC, patient-disjoint splits (mean ± SD over 5 repeats):
+
+| | 30-day readmission | Treatment escalation |
+|---|---|---|
+| Logistic regression | 0.669 ± 0.005 | 0.666 ± 0.013 |
+| LightGBM | 0.688 ± 0.004 | 0.687 ± 0.012 |
+| XGBoost | 0.688 ± 0.004 | 0.687 ± 0.013 |
+| GRU / RETAIN / Transformer | 0.682–0.683 | 0.677–0.681 |
+| TKGN | 0.682 ± 0.004 | 0.678 ± 0.012 |
+| **TKGN-B** | **0.690 ± 0.005** | **0.688 ± 0.013** |
+
+* TKGN-B is best on both tasks and beats every deep sequence baseline in
+  every repeat; its edge over tuned gradient boosting is small (≈0.002
+  AUROC, not statistically significant on a single test set).
+* On the prospective temporal split TKGN-B is best for escalation
+  (0.680 vs 0.673) but a random forest is best for readmission (0.700).
+* Earlier stays are the most useful input. The knowledge graph did **not**
+  improve discrimination at any training-set size tested — reported as a
+  negative result.
 
 All numbers are produced by `python -m src.run_pipeline` and written to
 `outputs/`. See `outputs/summary.json` (mean ± SD over runs),
@@ -45,12 +65,14 @@ python -m src.run_pipeline
 #    or a quick smoke run (1 repeat, no ablations / temporal / learning curve)
 python -m src.run_pipeline --quick
 
-# 3. explanations (permutation importance, TreeSHAP, example patients)
+# 3. knowledge-graph data-scarcity follow-up and explanations
+python -m src.kg_efficiency
 python -m src.explain
 
 # 4. manuscript tables, macros and figures from the outputs
 python paper/make_tables.py
 python paper/make_figures.py
+python paper/make_summary.py
 cd paper && latexmk -pdf main.tex
 ```
 
@@ -82,6 +104,7 @@ For development: `cd web && npm run dev` (http://localhost:5173, proxies
 | GET | `/api/significance` | bootstrap CIs, DeLong and paired bootstrap tests |
 | GET | `/api/repeat-tests` | paired comparison across repeats |
 | GET | `/api/ablation` | TKGN component ablation |
+| GET | `/api/kg-efficiency` | knowledge graph under data scarcity |
 | GET | `/api/learning-curve` | AUROC vs training-set size |
 | GET | `/api/calibration` | reliability curves |
 | GET | `/api/subgroups` | subgroup / fairness metrics |
@@ -106,6 +129,7 @@ src/
   run_pipeline.py    experiment runner (resumable jobs)
   analysis.py        aggregation into outputs/*.json
   explain.py         permutation importance, TreeSHAP, attention examples
+  kg_efficiency.py   knowledge graph vs flat codes with scarce training data
   inference.py       single-patient TKGN-B inference
   api.py             FastAPI backend + static web app
 tests/               data-integrity and leakage tests

@@ -29,14 +29,15 @@ the best model on the temporal escalation split (\AucEscTmpTKGNB{} versus
 patient-disjoint splits were small and not statistically significant, and a
 random forest was most robust on the temporal readmission split.
 Earlier stays were the most valuable model input, whereas knowledge-graph
-code sharing did not improve discrimination at full data size.
+code sharing did not improve discrimination, even with 5--25\% of the
+training data.
 Test AUROC differed by at most \GapReadmitRace{} across adequately sized
 racial groups and \GapReadmitGender{} between sexes, and most across age
 bands (\GapReadmitAge{}).
 
 \textbf{Conclusion:} Anchoring a knowledge-gated sequence model on gradient
-boosting yields calibrated risk estimates that are at least as accurate as
-the strongest tabular learners and clearly better than standard deep sequence
-models on real diabetes inpatient data. Gains over boosting are modest,
+boosting yields calibrated risk estimates that match or slightly exceed tuned
+gradient boosting and are clearly better than standard deep sequence models
+on real diabetes inpatient data. Gains over boosting are modest,
 underscoring the need for patient-disjoint and temporal validation when new
 architectures are proposed.

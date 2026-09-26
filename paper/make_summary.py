@@ -75,12 +75,12 @@ lines += [
     "## Honest reading",
     "",
     "* TKGN-B is the best or joint-best model under patient-disjoint validation for both tasks "
-    "and the best model on the temporal escalation split; it is clearly better than GRU, RETAIN, "
-    "Transformer and TKGN alone.",
+    "and the best model on the temporal escalation split; it beat GRU, RETAIN, Transformer and "
+    "TKGN alone in every grouped repeat of both tasks (significant for readmission).",
     "* Its advantage over tuned LightGBM/XGBoost is small (≈0.002 AUROC) and not statistically "
     "significant on a single test set; a random forest was most robust on the temporal readmission split.",
     "* Earlier stays are the most valuable input; knowledge-graph code sharing did not improve "
-    "discrimination at full data size (see ablation and the data-scarcity follow-up).",
+    "discrimination at any training size tested (5-100% of training patients).",
     "* Logistic regression and MLP degrade strongly under temporal shift (more diagnoses recorded "
     "per stay and longer histories in later years).",
     "",

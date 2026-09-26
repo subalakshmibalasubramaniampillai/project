@@ -30,11 +30,22 @@
 * escalation vs LightGBM: mean ΔAUROC +0.0015, won 5/5 repeats (paired t p=0.088); first test set ΔAUROC +0.0003 [-0.0004, +0.0011]
 * escalation vs XGBoost: mean ΔAUROC +0.0016, won 5/5 repeats (paired t p=0.093); first test set ΔAUROC +0.0009 [-0.0025, +0.0045]
 
+## Knowledge graph under data scarcity (TKGN minus TKGN without KG)
+
+* readmit30 at 5% of training patients: ΔAUROC -0.0009 ± 0.0063 (KG better in 1/3 repeats)
+* readmit30 at 10% of training patients: ΔAUROC +0.0008 ± 0.0054 (KG better in 2/3 repeats)
+* readmit30 at 25% of training patients: ΔAUROC +0.0003 ± 0.0049 (KG better in 2/3 repeats)
+* readmit30 at 100% of training patients: ΔAUROC -0.0011 ± 0.0017 (KG better in 0/3 repeats)
+* escalation at 5% of training patients: ΔAUROC -0.0152 ± 0.0205 (KG better in 1/3 repeats)
+* escalation at 10% of training patients: ΔAUROC -0.0005 ± 0.0031 (KG better in 1/3 repeats)
+* escalation at 25% of training patients: ΔAUROC -0.0012 ± 0.0030 (KG better in 1/3 repeats)
+* escalation at 100% of training patients: ΔAUROC -0.0038 ± 0.0021 (KG better in 0/3 repeats)
+
 ## Honest reading
 
-* TKGN-B is the best or joint-best model under patient-disjoint validation for both tasks and the best model on the temporal escalation split; it is clearly better than GRU, RETAIN, Transformer and TKGN alone.
+* TKGN-B is the best or joint-best model under patient-disjoint validation for both tasks and the best model on the temporal escalation split; it beat GRU, RETAIN, Transformer and TKGN alone in every grouped repeat of both tasks (significant for readmission).
 * Its advantage over tuned LightGBM/XGBoost is small (≈0.002 AUROC) and not statistically significant on a single test set; a random forest was most robust on the temporal readmission split.
-* Earlier stays are the most valuable input; knowledge-graph code sharing did not improve discrimination at full data size (see ablation and the data-scarcity follow-up).
+* Earlier stays are the most valuable input; knowledge-graph code sharing did not improve discrimination at any training size tested (5-100% of training patients).
 * Logistic regression and MLP degrade strongly under temporal shift (more diagnoses recorded per stay and longer histories in later years).
 
 ## Reproduce

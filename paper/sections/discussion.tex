@@ -13,9 +13,8 @@ average) and not statistically significant on a single test set, and on the
 temporal readmission split a random forest was more robust than every other
 model. The most important ingredient of the sequence model was access to
 the patient's earlier encounters (and, for readmission, their outcomes); the
-knowledge-graph
-components did not improve discrimination when the full training set was
-used.
+knowledge-graph components did not improve discrimination, neither with the
+full training set nor when training data were scarce.
 
 \subsection{Interpretation}
 \paragraph{Why anchoring helps}
@@ -42,12 +41,14 @@ which leaves little room for hierarchical smoothing. The empirical
 co-morbidity propagation even reduced performance slightly, possibly because
 PPMI emphasises strongly associated but rare pairs (for example
 pregnancy-related categories) that are not predictive of the outcomes
-studied here. The dedicated data-efficiency experiment
-(Section~\ref{sec:kgeff}) quantifies whether the graph helps when training
-data are scarce. We think the hierarchy is more likely to matter in
-settings with full-length ICD codes, smaller institutions or transfer
-between sites, and we report the negative result to discourage
-over-claiming of knowledge-graph benefits on this benchmark.
+studied here. The dedicated data-scarcity experiment
+(Section~\ref{sec:kgeff}) showed that this is not only a large-sample
+effect: even with 5--25\% of the training patients the graph did not help.
+We think the hierarchy is more likely to matter in settings with
+full-length ICD codes, many more distinct codes per patient, smaller
+institutions or transfer between sites, and we report the negative result
+to discourage over-claiming of knowledge-graph benefits on this
+benchmark.
 
 \paragraph{History-reliability gates}
 The gates did not change discrimination in the ablation, but they made the
@@ -118,11 +119,14 @@ prototypes and have not been evaluated for clinical utility.
 \subsection{Conclusions}
 Using real, publicly available diabetes inpatient records and a
 leakage-controlled protocol, we showed that anchoring a knowledge-gated
-sequence model on out-of-fold gradient boosting yields a model that is
-consistently at least as good as the strongest tabular learners, clearly
-better than standard deep sequence models, and well calibrated, for both
-30-day readmission and next-stay treatment escalation. Most of the gain from
-sequence modelling comes from the patient's earlier stays, whereas knowledge-graph code sharing did not improve
-discrimination at full data size. All code, derived results and an
+sequence model on out-of-fold gradient boosting yields a well-calibrated
+model that matched or slightly exceeded tuned gradient boosting under
+patient-disjoint validation and was clearly better than standard deep
+sequence models, for both 30-day readmission and next-stay treatment
+escalation; under temporal validation it was the best model for escalation
+but not for readmission. Most of the gain from
+sequence modelling comes from the patient's earlier stays, whereas
+knowledge-graph code sharing did not improve discrimination at any training
+size examined. All code, derived results and an
 interactive dashboard are released to support replication and extension to
 other cohorts.
