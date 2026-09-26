@@ -1,227 +1,213 @@
 """
-FastAPI backend for the diabetes progression research system.
+FastAPI backend for the diabetes readmission / treatment-escalation
+research system built on the Diabetes 130-US Hospitals data.
 
-Provides REST endpoints that the React frontend consumes:
-  - /health
-  - /api/metrics            → all model evaluation metrics
-  - /api/ablation           → ablation-stage metrics
-  - /api/split              → dataset + split summary
-  - /api/dataset            → patient-level raw data
-  - /api/dataset/{patient_id} → one patient's visits
-  - /api/patients           → the list of patient IDs
-  - /api/explanation        → saved feature-contribution probe
-  - /api/clusters           → trajectory clustering summary
-  - /api/fusion             → CCF model weights
-  - /api/graph              → knowledge graph nodes/edges
-  - /api/predict            → single / multi-visit inference
-  - /api/ingest             → upload CSV / use real / generate + retrain
+Read-only result endpoints (produced by ``python -m src.run_pipeline``):
+  GET  /api/overview          dataset summary + split sizes
+  GET  /api/summary           mean +/- SD test metrics per task/split/model
+  GET  /api/significance      bootstrap CIs, DeLong and paired bootstrap tests
+  GET  /api/repeat-tests      per-repeat paired AUROC comparisons
+  GET  /api/ablation          TKGN component ablation
+  GET  /api/subgroups         fairness / subgroup performance
+  GET  /api/calibration       reliability curves
+  GET  /api/learning-curve    performance vs training-set size
+  GET  /api/gates             TKGN history gates vs number of prior stays
+  GET  /api/explanations      permutation importance, TreeSHAP, examples
+  GET  /api/graph             knowledge-graph summary
+Patient-level endpoints:
+  GET  /api/patients          test-set patients with >= 2 encounters
+  GET  /api/patients/{id}     their encounters + stored model predictions
+  GET  /api/schema            allowed values for the risk form
+  POST /api/predict           TKGN-B risk for a posted encounter history
 
-Static build of the React app is served from ../web/dist when present.
+The built React app in ../web/dist is served at / when present.
 """
-import json
-from pathlib import Path
-from typing import Optional
+from __future__ import annotations
 
+import json
+from functools import lru_cache
+from pathlib import Path
+
+import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from .data_source import prepare_dataset
-from .inference import infer_new_patient
-from .models import make_patient_features, patient_split
-from .novel import PatientTrajectoryClusterer
-
-ROOT = Path(__file__).parent.parent
-DATA_PATH = ROOT / "data" / "longitudinal_diabetes.csv"
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "outputs"
 
 app = FastAPI(
-    title="Diabetes Progression Research API",
-    description="Longitudinal diabetes progression research and "
-                "decision-support system. Not a diagnostic tool.",
-    version="2.0.0",
+    title="Diabetes Encounter Risk Research API",
+    description="Real-world EHR research system (Diabetes 130-US Hospitals). "
+                "Research and decision support only; not a diagnostic tool.",
+    version="3.0.0",
 )
-
-# CORS for the Vite dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:4173",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173",
+                   "http://localhost:4173"],
+    allow_methods=["*"], allow_headers=["*"],
 )
 
 
-def _require_data():
-    if not DATA_PATH.exists():
-        raise HTTPException(
-            status_code=503,
-            detail="Run `python -m src.run_pipeline` or ingest data first.",
-        )
-    return pd.read_csv(DATA_PATH)
-
-
-def _safe_json(path: Path):
+def _json(name: str):
+    path = OUT / name
     if not path.exists():
-        raise HTTPException(status_code=404, detail=f"{path.name} not found")
+        raise HTTPException(404, f"{name} not found - run the pipeline first")
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-# ── health ───────────────────────────────────────
 @app.get("/health")
 def health():
-    return {
-        "status": "ok",
-        "purpose": "research and decision support, not diagnosis",
-    }
+    return {"status": "ok",
+            "purpose": "research and decision support, not diagnosis"}
 
 
-# ── metrics ──────────────────────────────────────
-@app.get("/api/metrics")
-def get_metrics():
-    return _safe_json(ROOT / "outputs" / "model_metrics.json")
+@app.get("/api/overview")
+def overview():
+    return {"dataset": _json("dataset_summary.json"),
+            "splits": _json("splits.json")}
+
+
+@app.get("/api/summary")
+def summary():
+    return _json("summary.json")
+
+
+@app.get("/api/significance")
+def significance():
+    return _json("significance.json")
+
+
+@app.get("/api/repeat-tests")
+def repeat_tests():
+    return _json("repeat_tests.json")
 
 
 @app.get("/api/ablation")
-def get_ablation():
-    return _safe_json(ROOT / "outputs" / "ablation_metrics.json")
+def ablation():
+    return _json("ablation.json")
 
 
-@app.get("/api/split")
-def get_split():
-    return _safe_json(ROOT / "outputs" / "split.json")
+@app.get("/api/subgroups")
+def subgroups():
+    return _json("subgroups.json")
 
 
-@app.get("/api/fusion")
-def get_fusion():
-    return _safe_json(ROOT / "outputs" / "ccf_weights.json")
+@app.get("/api/calibration")
+def calibration():
+    return _json("calibration.json")
 
 
-@app.get("/api/explanation")
-def get_explanation():
-    return _safe_json(ROOT / "outputs" / "explanation.json")
+@app.get("/api/learning-curve")
+def learning_curve():
+    return _json("learning_curve.json")
 
 
-# ── dataset ──────────────────────────────────────
-@app.get("/api/patients")
-def list_patients():
-    data = _require_data()
-    return {"patients": sorted(data.patient_id.astype(str).unique().tolist())}
+@app.get("/api/gates")
+def gates():
+    return _json("gates.json")
 
 
-@app.get("/api/dataset")
-def get_dataset(patient_id: Optional[str] = None):
-    data = _require_data()
-    if patient_id:
-        frame = data[data.patient_id == patient_id]
-        if frame.empty:
-            raise HTTPException(status_code=404, detail="Patient not found")
-        return {"patient_id": patient_id,
-                "visits": frame.to_dict(orient="records")}
-    return data.to_dict(orient="records")
+@app.get("/api/explanations")
+def explanations():
+    return _json("explanations.json")
 
 
-@app.get("/api/clusters")
-def get_clusters():
-    feat_path = ROOT / "outputs" / "patient_features.csv"
-    if not feat_path.exists():
-        raise HTTPException(status_code=404, detail="No patient features")
-    feats = pd.read_csv(feat_path)
-    if "traj_cluster" not in feats.columns:
-        return {"clusters": None}
-    summary = (
-        feats.groupby("traj_cluster")
-        .agg({"hba1c_slope": "mean", "target": "mean",
-              "patient_id": "count"})
-        .rename(columns={"patient_id": "n_patients"})
-        .reset_index()
-    )
-    return {
-        "clusters": summary.to_dict(orient="records"),
-        "counts": feats["traj_cluster"]
-        .value_counts().sort_index().to_dict(),
-    }
-
-
-# ── knowledge graph ──────────────────────────────
 @app.get("/api/graph")
-def get_graph():
-    gml_path = ROOT / "outputs" / "knowledge_graph.graphml"
-    if not gml_path.exists():
-        raise HTTPException(status_code=404, detail="No graph file")
-    import networkx as nx
-    graph = nx.read_graphml(str(gml_path))
-    edges = []
-    for src, tgt, attr in graph.edges(data=True):
-        edges.append({
-            "source": src, "target": tgt,
-            "relation": attr.get("relation", ""),
-            "justification": attr.get("justification", ""),
-        })
-    return {
-        "node_count": graph.number_of_nodes(),
-        "edge_count": graph.number_of_edges(),
-        "nodes": list(graph.nodes),
-        "edges": edges[:5000],  # keep payload bounded for the UI
-    }
+def graph():
+    return _json("knowledge_graph_summary.json")
 
 
-# ── inference ────────────────────────────────────
-class PredictionRequest(BaseModel):
-    visits: list
-    use_tagnn: bool = True
+# ── patients ─────────────────────────────────────
+@lru_cache(maxsize=1)
+def _cohort():
+    from .data import build_cohort
+    return build_cohort()
+
+
+@lru_cache(maxsize=1)
+def _explorer():
+    path = OUT / "explorer_predictions.csv"
+    if not path.exists():
+        raise HTTPException(404, "explorer_predictions.csv not found")
+    return pd.read_csv(path)
+
+
+@app.get("/api/patients")
+def patients(task: str = "readmit30", limit: int = 300):
+    frame = _explorer()
+    frame = frame[frame.task == task]
+    counts = (frame.groupby("patient_nbr").size()
+              .sort_values(ascending=False).head(limit))
+    return [{"patient_nbr": int(p), "encounters": int(n)}
+            for p, n in counts.items()]
+
+
+ENCOUNTER_FIELDS = [
+    "encounter_id", "order", "age", "gender", "race", "admission_type_id",
+    "discharge_disposition_id", "time_in_hospital", "num_medications",
+    "num_lab_procedures", "number_inpatient", "number_emergency",
+    "number_diagnoses", "diag_1", "diag_2", "diag_3", "A1Cresult",
+    "insulin", "change", "readmitted", "y_escalation",
+]
+
+
+@app.get("/api/patients/{patient_nbr}")
+def patient(patient_nbr: int, task: str = "readmit30"):
+    cohort = _cohort()
+    rows = cohort[cohort.patient_nbr == patient_nbr]
+    if rows.empty:
+        raise HTTPException(404, "patient not found")
+    preds = _explorer()
+    preds = preds[(preds.task == task) & (preds.patient_nbr == patient_nbr)]
+    merged = rows[ENCOUNTER_FIELDS].merge(
+        preds.drop(columns=["task", "patient_nbr", "order"]),
+        on="encounter_id", how="left")
+    merged = merged.replace({np.nan: None})
+    return {"patient_nbr": patient_nbr, "task": task,
+            "encounters": merged.to_dict(orient="records")}
+
+
+@app.get("/api/schema")
+def schema():
+    from .data import CATEGORICAL_COLUMNS
+    from .icd9 import DRUG_COLUMNS, DRUG_STATES
+    cohort = _cohort()
+    options = {}
+    for col in CATEGORICAL_COLUMNS:
+        values = cohort[col].dropna().value_counts().head(25).index
+        options[col] = [v.item() if hasattr(v, "item") else v for v in values]
+    common_dx = (pd.concat([cohort.diag_1, cohort.diag_2, cohort.diag_3])
+                 .dropna().value_counts().head(60).index.tolist())
+    return {"categorical": options, "drugs": DRUG_COLUMNS,
+            "drug_states": DRUG_STATES, "common_diagnoses": common_dx}
+
+
+class PredictRequest(BaseModel):
+    task: str = Field("readmit30", pattern="^(readmit30|escalation)$")
+    encounters: list[dict]
 
 
 @app.post("/api/predict")
-def predict(req: PredictionRequest):
-    if not req.visits:
-        raise HTTPException(status_code=400, detail="No visits provided")
-    frame = pd.DataFrame(req.visits)
-    use_tagnn = req.use_tagnn and (ROOT / "outputs" / "tagnn.pt").exists()
-    model_path = (
-        "outputs/tagnn.pt"
-        if use_tagnn
-        else "outputs/gnn_kg_longitudinal.pt"
-    )
-    result = infer_new_patient(
-        frame, str(ROOT / model_path), use_tagnn=use_tagnn,
-    )
-    return result
-
-
-# ── ingest / retrain ─────────────────────────────
-class IngestRequest(BaseModel):
-    use_real: bool = False
-    source: Optional[str] = None
-
-
-@app.post("/api/ingest")
-def ingest(req: IngestRequest = None, file: UploadFile = File(default=None)):
-    from .run_pipeline import run as run_pipeline
-
+def predict(req: PredictRequest):
+    from .inference import predict_patient
+    if not req.encounters:
+        raise HTTPException(400, "no encounters provided")
+    if len(req.encounters) > 50:
+        raise HTTPException(400, "at most 50 encounters per request")
     try:
-        if file is not None:
-            content = pd.read_csv(file.file)
-            run_pipeline(data=content)
-        elif req is not None and req.source:
-            import io
-            run_pipeline(source=req.source)
-        elif req is not None and req.use_real:
-            run_pipeline(use_real_data=True)
-        else:
-            run_pipeline()
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    return {"status": "ok", "detail": "Re-trained successfully"}
+        return predict_patient(req.encounters, req.task)
+    except FileNotFoundError as exc:
+        raise HTTPException(503, str(exc))
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(400, str(exc))
 
 
-# ── static React build (production) ──────────────
+# ── static React build ───────────────────────────
 WEB_DIST = ROOT / "web" / "dist"
 if WEB_DIST.exists():
     app.mount("/assets", StaticFiles(directory=str(WEB_DIST / "assets")),
@@ -233,7 +219,7 @@ if WEB_DIST.exists():
 
     @app.get("/{full_path:path}")
     def serve_spa(full_path: str):
-        candidate = WEB_DIST / full_path
-        if candidate.is_file():
+        candidate = (WEB_DIST / full_path).resolve()
+        if candidate.is_file() and WEB_DIST.resolve() in candidate.parents:
             return FileResponse(str(candidate))
         return FileResponse(str(WEB_DIST / "index.html"))

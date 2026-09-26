@@ -1,468 +1,535 @@
-\documentclass[conference]{IEEEtran}
+\documentclass[preprint,12pt,authoryear]{elsarticle}
+% Manuscript prepared for an Elsevier biomedical-informatics journal.
+% Switch to [review] for double spacing or [5p,times,twocolumn] for a
+% camera-ready preview.
+
 \usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{cite}
-\usepackage{url}
-\usepackage{array}
 \usepackage{multirow}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{lineno}
+\usepackage[margin=2.2cm]{geometry}
 
-\newcommand{\etal}{et~al.\ }
-\newcommand{\X}{\mathcal{X}}
-\newcommand{\A}{\mathcal{A}}
+\input{tables/results_macros.tex}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\vect}[1]{\mathbf{#1}}
+
+\journal{Journal of Biomedical Informatics}
 
 \begin{document}
 
-\title{A Longitudinal Knowledge-Graph-Aware Framework for Diabetes Progression Modelling with Temporal Attention and Calibrated Fusion}
+\begin{frontmatter}
 
-\author{
-\IEEEauthorblockN{Research Prototype Authors}
-\IEEEauthorblockA{Longitudinal Diabetes Progression Research System\\
-Correspondence: project repository}
-}
+\title{Temporal knowledge-gated networks for readmission and treatment-escalation
+risk in real-world diabetes inpatient records}
 
-\maketitle
+\author[1]{Author One\corref{cor1}}
+\ead{corresponding.author@institution.edu}
+\author[1]{Author Two}
+\cortext[cor1]{Corresponding author.}
+\affiliation[1]{organization={Department, Institution},
+  city={City}, country={Country}}
 
 \begin{abstract}
-Accurately predicting the progression of chronic conditions such as
-type 2 diabetes requires models that combine longitudinal clinical
-measurements, population-scale similarity structures, and calibrated
-uncertainty. In this paper we present a modular research framework that
-integrates a patient-level knowledge graph, trajectory-derived features,
-and a staged pipeline of ten learning models. We introduce three
-technical components designed for longitudinal patient data: a
-Temporal Attention Graph Neural Network (TAGNN) that weights
-neighbour contributions by trajectory divergence through a learned
-temporal gate; a Multi-Head Feature Interaction Network (MHFIN) that
-explicitly models pairwise feature interactions through multiple
-projection heads; and a Confidence-Calibrated Fusion (CCF) layer that
-stacks base-model probabilities and learns per-model reliability
-coefficients on out-of-fold predictions. A fourth component, Patient
-Trajectory Clustering (PTC), augments features with shape-based
-trajectory cluster identifiers. Models are evaluated on a patient-level
-stratified split using accuracy, precision, recall, F1 score, area under
-the ROC and PR curves, Brier score, and log loss. An ablation confirms
-that adding knowledge-graph edges and longitudinal features yields
-successive improvements over a plain graph model. All results are
-served through a FastAPI backend and an interactive React dashboard,
-making the system usable both as a research platform and as a
-decision-support prototype. The system is explicitly presented as a
-research and decision-support tool rather than a diagnostic device.
+\input{sections/abstract.tex}
 \end{abstract}
 
-\begin{IEEEkeywords}
-graph neural networks, knowledge graphs, longitudinal clinical data,
-diabetes progression, temporal attention, model calibration, ensemble
-fusion, interpretability
-\end{IEEEkeywords}
+\begin{keyword}
+electronic health records \sep diabetes mellitus \sep hospital readmission
+\sep knowledge graph \sep ICD-9-CM \sep sequence modelling \sep gradient boosting
+\sep calibration \sep algorithmic fairness
+\end{keyword}
 
+\end{frontmatter}
+
+\linenumbers
+
+%======================================================================
 \section{Introduction}
+\label{sec:intro}
 
-Diabetes is a progressive chronic condition whose management depends on
-the ability to anticipate how an individual's metabolic state will
-evolve over time \cite{ada}. Glycated haemoglobin (HbA1c), fasting
-glucose, body-mass index, and blood pressure are routinely recorded at
-successive clinical visits, producing a longitudinal record that is
-fundamentally different from the single-snapshot data assumed by most
-tabular classifiers. A model that treats each row as independent
-discards the ordering of measurements and the shape of the trajectory;
-a model that ignores patient-to-patient structure cannot exploit
-similarity between individuals who share conditions or metabolic
-patterns.
+People with diabetes are admitted to hospital more often than people
+without it, and a notable share of those admissions is followed by an
+early return \citep{rubin2015}. Unplanned readmission within 30 days is
+costly, it is used as a quality indicator, and it often reflects problems
+that began before discharge: an unstable glycaemic regimen, unresolved
+co-morbidity, or a care transition that was not prepared. A second, less
+studied signal is the escalation of glucose-lowering therapy between
+consecutive stays. Treatment intensification is the expected response to
+worsening glycaemic control, and its timing is known to lag behind clinical
+need \citep{khunti2013}; anticipating it at discharge could help teams plan
+follow-up and medication review \citep{ada2024}.
 
-This paper describes a fully implemented research framework for
-diabetes progression modelling that brings together four modelling
-ideas that are normally studied in isolation: (i)~knowledge-graph
-reasoning over patient and condition entities, (ii)~longitudinal
-trajectory features derived from multiple visits, (iii)~graph neural
-networks with attention, and (iv)~calibrated probabilistic fusion for
-ensemble decisions. The framework is organised as a layered pipeline
--- data, pre-processing and knowledge, modelling, and serving -- and is
-evaluated on a cohort of 240 patients with four visits each.
+Both outcomes depend on information that is spread over time and over a
+large vocabulary of clinical codes. Hospital records store diagnoses as
+ICD-9-CM codes, and those codes are organised in a public hierarchy that
+groups related conditions. Many codes are rare in any single institution,
+so a model that learns one free parameter vector per code has little to go
+on for most of them. At the same time, the history available for a given
+patient is short and uneven: in routinely collected inpatient data, most
+patients appear only once, while a minority accumulate many stays. A
+predictive model therefore has to decide, patient by patient, how much the
+past should change the estimate derived from the current stay.
 
-%----------------------------------------------------------------------
-\section{Related Work}
+Most published readmission models for the widely used Diabetes 130-US
+Hospitals database \citep{strack2014} treat each encounter as an
+independent row, discarding the link between stays of the same person.
+Deep sequence models developed for large EHR corpora, such as recurrent
+networks \citep{choi2016doctorai}, reverse-time attention
+\citep{choi2016retain} or Transformers \citep{li2020behrt,rasmy2021medbert},
+do use this link, and ontology-aware representations such as GRAM
+\citep{choi2017gram} and KAME \citep{ma2018kame} address rare codes. Two
+practical gaps remain. First, on moderate-sized tabular clinical data,
+gradient-boosted decision trees are very strong and frequently match or
+outperform neural networks \citep{grinsztajn2022}; new neural methods are
+seldom compared against well-tuned boosting under identical inputs.
+Second, evaluations often rely on a single random split at the encounter
+level, which allows the same patient to appear in training and test data
+and gives no estimate of variability, calibration or subgroup behaviour
+\citep{collins2015tripod,vancalster2019}.
 
-Graph neural networks generalise deep learning to relational data by
-iteratively propagating and aggregating messages over a graph
-structure \cite{scarselli,kipf2017,hamilton2017}. Attention mechanisms,
-originally introduced for sequence modelling \cite{vaswani}, have been
-adapted to graphs to let a node decide \emph{which} neighbours should
-influence its representation. However, most graph attention variants
-attend over structural or feature similarity and do not explicitly
-consider whether two patients are co-evolving along a clinical
-trajectory. Our TAGNN closes this gap with a temporal gate that
-compares the feature trajectories of the two endpoints of each edge.
+This paper addresses both gaps on real, publicly available hospital data.
+Our contributions are:
+\begin{enumerate}
+  \item \textbf{A temporal knowledge-gated network (TKGN).} TKGN encodes
+  each encounter with a hybrid clinical knowledge graph that combines the
+  ICD-9-CM hierarchy with a co-morbidity graph estimated from training
+  encounters, summarises the patient's earlier stays, and fuses the past
+  with the current stay through \emph{history-reliability gates} that are
+  conditioned on the amount of history and on the change since the last
+  stay.
+  \item \textbf{A boosting-anchored variant (TKGN-B).} Instead of competing
+  with gradient boosting, TKGN-B learns a residual on top of an
+  out-of-fold LightGBM logit, so that the network only has to explain what
+  the tree ensemble misses, chiefly the longitudinal and relational
+  structure.
+  \item \textbf{Two clinically motivated tasks on the same cohort}:
+  30-day readmission and escalation of glucose-lowering treatment at the
+  next stay.
+  \item \textbf{A leakage-controlled evaluation protocol} with
+  patient-disjoint repeated splits, a prospective temporal split, strong
+  tuned baselines (five tabular learners and three sequence models),
+  patient-clustered bootstrap confidence intervals, DeLong tests,
+  calibration analysis, component ablations, learning curves and a
+  subgroup fairness audit. All code and derived results are released.
+\end{enumerate}
 
-Ensembles improve robustness, but naive averaging ignores the fact that
-models differ in reliability. Calibration of modern neural networks was
-studied by Guo~\etal\cite{guo}, who showed that confidence is often
-poorly calibrated and can be corrected with a learnt temperature or
-probabilistic layer. We adopt a logistic stacking layer that learns
-per-model coefficients rather than a single temperature, so the fusion
-weight of each model emerges directly from its out-of-fold behaviour.
+%======================================================================
+\section{Related work}
+\label{sec:related}
 
-Interpretability of black-box models is a recurring concern in clinical
-applications. Local explanation methods such as LIME and SHAP
-\cite{lime,shap} approximate per-instance feature contributions. Our
-system instead surfaces interpretable artefacts directly: trajectory
-features, cluster identifiers, and learned attention weights are
-reported alongside every prediction in the dashboard.
+\paragraph{Readmission prediction in diabetes}
+Systematic reviews report that most readmission models reach only
+moderate discrimination, with areas under the ROC curve commonly between
+0.6 and 0.7 \citep{kansagara2011}. The Diabetes 130-US Hospitals database
+was released together with an analysis of HbA1c measurement and
+readmission \citep{strack2014} and has since become a common benchmark.
+Readmission risk in diabetes is associated with prior utilisation,
+co-morbidity burden and discharge circumstances \citep{rubin2015}; these
+factors are recorded across stays, which motivates sequence-aware
+modelling.
 
-Tabular ensemble methods such as random forests \cite{breiman} and
-gradient boosting \cite{xgboost} remain strong baselines on structured
-clinical data, and we retain them as reference points. The Pima Indians
-Diabetes dataset \cite{pima} is used as the canonical public benchmark
-for diabetes outcome prediction; our synthetic cohort generator is
-designed to expose the same type of longitudinal structure.
+\paragraph{Sequence models for EHR}
+Recurrent networks were among the first deep models applied to visit
+sequences \citep{choi2016doctorai}. RETAIN introduced two-level attention
+over reversed visit sequences to improve interpretability
+\citep{choi2016retain}, and Transformer encoders pre-trained on large
+claims or EHR corpora have since been proposed
+\citep{li2020behrt,rasmy2021medbert}. Large-scale studies showed that deep
+models trained on complete EHR can predict readmission and other outcomes
+\citep{rajkomar2018}. Surveys document the breadth of this work and its
+reliance on large proprietary data \citep{shickel2018deepehr}; public
+multitask benchmarks exist mainly for intensive-care time series
+\citep{harutyunyan2019}.
 
-%----------------------------------------------------------------------
-\section{System Architecture}
+\paragraph{Knowledge-aware code representations}
+GRAM represents a medical code as an attention-weighted combination of
+its ancestors in a clinical ontology and showed gains for rare codes
+\citep{choi2017gram}; KAME extends this idea by using knowledge at the
+prediction stage \citep{ma2018kame}. Graph convolution
+\citep{kipf2017} and co-occurrence statistics such as pointwise mutual
+information \citep{church1990} are standard tools for relational
+structure. TKGN differs from these works in three respects: it keeps a
+code-specific embedding and adds ancestor information residually rather
+than as a convex combination; it refines category embeddings with an
+empirical co-morbidity graph whose propagation weights are initialised at
+zero; and it couples the code encoder with an explicit, history-length
+aware gating of longitudinal information.
 
-The architecture is organised into four layers (Fig.~\ref{fig:arch}).
-The \emph{data layer} accepts one of three sources: a reproducible
-synthetic cohort generator, the public Pima Indians dataset, or an
-arbitrary user-provided longitudinal CSV (by path, URL, or upload).
-The \emph{pre-processing and knowledge layer} validates and
-standardises the data, builds the knowledge graph, and derives
-per-patient trajectory features and cluster identifiers. The
-\emph{modelling layer} trains ten models: four tabular baselines, a
-plain graph model and two progressive graph-kernel variants, the two
-novel architectures TAGNN and MHFIN, and the CCF stacked fusion. The
-\emph{serving layer} evaluates every model on the held-out patient
-split, persists artefacts to JSON and PyTorch checkpoint files, and
-exposes all results through a FastAPI backend and a React dashboard
-served by Vite.
+\paragraph{Trees, networks and hybrids}
+Gradient-boosted trees \citep{friedman2001,chen2016xgboost,ke2017lightgbm}
+remain the reference for heterogeneous tabular data
+\citep{grinsztajn2022}. Hybrid designs that feed tree outputs into another
+learner \citep{he2014facebook} or combine learners by stacking
+\citep{wolpert1992} are well established. TKGN-B uses the boosting logit
+as a fixed offset and trains the network on the residual, with
+out-of-fold offsets on the training data to avoid optimistic anchoring.
+Gating as a fusion mechanism has been studied for multimodal inputs
+\citep{arevalo2017gmu}; here the gate arbitrates between the current stay
+and an uncertain, variable-length history.
 
-\begin{figure}[!t]
-\centering
-\includegraphics[width=\columnwidth]{figures/architecture.png}
-\caption{Layered system architecture. Data flows from three sources
-through validation, knowledge-graph construction and feature
-engineering into the modelling and evaluation layers, and is served
-through a REST backend and a React dashboard.}
-\label{fig:arch}
+\paragraph{Evaluation of clinical prediction models}
+Reporting guidelines ask for calibration, internal validation that
+respects the data structure, and transparent handling of thresholds
+\citep{collins2015tripod}. Poor calibration can make an accurate model
+harmful \citep{vancalster2019}, and modern neural networks are often
+mis-calibrated \citep{guo2017}. Algorithmic bias across racial groups has
+been documented in deployed risk tools \citep{obermeyer2019}, which
+motivates subgroup audits.
+
+%======================================================================
+\section{Data and cohort}
+\label{sec:data}
+
+\subsection{Source}
+We used the Diabetes 130-US Hospitals for Years 1999--2008 database
+\citep{strack2014,uci296}, distributed by the UCI Machine Learning
+Repository under a CC BY 4.0 licence. It contains \NRaw{} de-identified
+inpatient encounters of patients with diabetes from 130 US hospitals and
+integrated delivery networks. Each encounter lasted one to fourteen days
+and includes demographics, admission and discharge characteristics,
+utilisation counts for the preceding year, up to three ICD-9-CM
+diagnoses, HbA1c and serum glucose test results, the prescription status
+of 23 glucose-lowering drugs (not prescribed, steady, dose increased, dose
+decreased) and the readmission outcome. A persistent patient number links
+repeat encounters of the same person. The file used in this study is the
+unmodified public release; its SHA-256 checksum is verified by the code
+before any processing. No record was simulated, imputed from synthetic
+distributions or augmented.
+
+\subsection{Cohort definition}
+Following \citet{strack2014}, encounters ending in death or discharge to
+hospice were excluded because readmission is not possible after them;
+three encounters with unknown sex were also removed
+(Fig.~\ref{fig:cohort}). The resulting cohort has \NEnc{} encounters of
+\NPat{} patients, of whom \NRepeat{} have two or more encounters.
+Encounters of a patient were ordered by encounter identifier, which
+increases with admission time in this release (calendar dates are not
+distributed). \NHist{} encounters (\PctHist\%) have at least one earlier
+stay. Table~\ref{tab:cohort} summarises the cohort.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.55\linewidth]{figures/fig_cohort.pdf}
+  \caption{Cohort derivation and the two prediction tasks.}
+  \label{fig:cohort}
 \end{figure}
 
-%----------------------------------------------------------------------
-\section{Methodology}
-
-\subsection{Data and Pre-processing}
-
-Each patient is represented by up to four labelled visits with visit
-number, date, age, HbA1c, glucose, BMI, systolic and diastolic blood
-pressure, and a condition label. The progression target is derived from
-the trajectory: a patient progresses if the final HbA1c exceeds the
-first by at least 0.5\,\% or if the final value is at least 6.5\,\%.
-Validation enforces column presence, numeric coercion, and enough
-visits per patient to support longitudinal features.
-
-\subsection{Knowledge-Graph Construction}
-\label{sec:kg}
-
-The knowledge graph is a directed multigraph with two node types:
-patient nodes and condition nodes. Two edge types are distinguished:
-\emph{observed} edges from a patient to their condition, justified by
-the dataset, and \emph{assumed similarity} edges between patients who
-share a condition, explicitly labelled as modelling assumptions rather
-than causal or clinical evidence. Keeping these edge types separate is
-deliberate: it lets downstream models exploit population similarity
-while making the epistemic status of each edge auditable.
-
-\subsection{Feature Engineering}
-
-From the first three visits we compute per-feature means and standard
-deviations for the six clinical measurements, then fit a linear model
-over the visit index to obtain the HbA1c slope, glucose slope, and an
-HbA1c curvature term. This yields a compact patient-level vector that
-retains both the level and the direction of change of each measurement.
-
-\subsection{Patient Trajectory Clustering (PTC)}
-
-Rather than clustering patients on raw values, PTC clusters on
-trajectory \emph{shape}. The HbA1c slope and, when available, the
-curvature define a two- (or three-) dimensional space that is
-segmented with $k$-means ($k=5$). Each patient receives a cluster
-identifier that is one-hot encoded and concatenated to the feature
-matrix, providing the classifiers with population-level progression
-patterns.
-
-\subsection{Baseline and Graph Models}
-
-The tabular baselines are logistic regression, a random forest, an
-XGBoost classifier, and a multilayer perceptron, all trained on the
-standardised feature matrix. The graph models regress on a shared
-message-passing backbone: features of neighbour nodes are aggregated
-by weighted sum, normalised by degree, gated by a learned attention
-signal, and passed through a two-layer head. Three configurable
-variants are trained: a plain graph model, a knowledge-graph variant
-whose edges encode elevated-HbA1c co-morbidity similarity, and a
-longitudinal variant that additionally consumes slope and curvature
-features.
-
-\subsection{Temporal Attention GNN (TAGNN)}
-\label{sec:tagnn}
-
-TAGNN augments standard message passing with a learned temporal gate.
-For each directed edge $(u,v)$, a two-layer sigmoid gate receives the
-concatenation of the source and target feature vectors and produces a
-scalar in $(0,1)$ that down-weights neighbours whose feature trajectory
-diverges from the target patient:
-\begin{equation}
-m_{uv} = g\left([x_u; x_v]\right) \odot (W_N\, x_v), \qquad
-g(z)=\sigma(W_2\,\mathrm{ReLU}(W_1 z+ b_1)+b_2),
-\end{equation}
-where $x_u$ is the feature vector of node $u$, $W_N$ is the neighbour
-projection, and $g$ is the temporal gate. Messages are summed per
-source node, normalised by degree, combined with the self-projection,
-layernormed, and passed through a ReLU. The model stacks two such
-layers followed by a linear classification head, and is trained with
-the binary cross-entropy loss over the training-patient mask with an
-Adam optimiser.
-
-\subsection{Multi-Head Feature Interaction Network (MHFIN)}
-
-MHFIN enriches the base representation with explicitly modelled
-pairwise feature interactions. A set of $k$ linear projections (here
-$k=4$) maps the input to $k$ low-dimensional embeddings; the original
-features and all projections are concatenated into a single enriched
-vector that feeds a two-layer classification head. This is cheaper than
-explicit combinatorial feature engineering and provides the classifier
-with a compact interaction basis.
-
-\subsection{Confidence-Calibrated Fusion (CCF)}
-
-CCF replaces hard voting or simple averaging with a calibrated stack.
-Let $P\in\mathbb{R}^{n\times m}$ be the matrix of predicted
-probabilities from $m$ base models. A logistic calibration layer learns
-a coefficient per model,
-\begin{equation}
-\widehat{p} = \sigma\!\left(w_0 + \textstyle\sum_{j=1}^{m} w_j P_j\right),
-\end{equation}
-so that models whose probabilities are better calibrated receive
-higher weight. Coefficients are fit on the training split; the final
-calibrator is trained on out-of-fold predictions obtained from an
-inner stratified cross-validation, and the learned weight vector is
-persisted as a model-level artefact.
-
-%----------------------------------------------------------------------
-\section{Workflow}
-
-The end-to-end workflow (Fig.~\ref{fig:workflow}) proceeds in nine
-stages: (1)~data loading from one of the three sources; (2)~construction
-of the knowledge graph; (3)~computation of trajectory features;
-(4)~PTC clustering and one-hot encoding; (5)~patient-level stratified
-75/25 split; (6)~training of the ten models; (7)~calibrated stacking of
-the base and graph models into CCF; (8)~evaluation on the held-out
-split and persistence of metrics, graphs, and checkpoints; and
-(9)~serving through the REST API and dashboard. The pipeline is
-reproducible: a fixed random seed governs cohort generation and all
-splits.
-
-\begin{figure}[!t]
-\centering
-\includegraphics[width=\columnwidth]{figures/workflow.png}
-\caption{End-to-end pipeline from data loading through evaluation and
-serving.}
-\label{fig:workflow}
-\end{figure}
-
-%----------------------------------------------------------------------
-\section{Experiments and Results}
-
-\subsection{Setup}
-
-The synthetic cohort contains 240 patients and 960 visits (four visits
-per patient). A patient-level stratified split retains 180 patients for
-training and 60 for testing, so the evaluation reflects
-\emph{generalisation to unseen patients} rather than unseen rows. All
-metrics are computed on the test set with a 0.5 decision threshold.
-Results for a final model run are summarised in
-Table~\ref{tab:metrics}.
-
-\subsection{Main Results}
-
-\begin{table}[!t]
-\caption{Patient-level test metrics over ten models. Best value in
-each column in bold. AUC values are unavailable dimensions are omitted
-(no degenerate splits occurred).}
-\label{tab:metrics}
-\centering
-\small
-\setlength{\tabcolsep}{2.4pt}
-\renewcommand{\arraystretch}{1.05}
-\begin{tabular}{lcccccccc}
-\toprule
-Model & Acc & Prec & Rec & F1 & ROC & PR & Brier & LL \\
-\midrule
-Logistic regression & 0.817 & 0.750 & 0.783 & 0.766 & 0.927 & 0.897 & 0.112 & 0.332 \\
-Random forest       & 0.867 & 0.800 & 0.870 & 0.833 & 0.935 & 0.916 & 0.102 & 0.317 \\
-XGBoost             & \textbf{0.900} & \textbf{0.870} & \textbf{0.870} & \textbf{0.870} & \textbf{0.955} & \textbf{0.945} & \textbf{0.082} & \textbf{0.261} \\
-MLP                 & 0.817 & 0.731 & 0.826 & 0.776 & 0.910 & 0.851 & 0.143 & 0.757 \\
-\midrule
-GNN                 & 0.800 & 0.704 & 0.826 & 0.760 & 0.887 & 0.807 & 0.167 & 1.223 \\
-GNN\,+\,KG          & 0.850 & 0.792 & 0.826 & 0.809 & 0.911 & 0.871 & 0.115 & 0.615 \\
-GNN\,+\,KG\,+\,long.& 0.867 & 0.826 & 0.826 & 0.826 & 0.929 & 0.906 & 0.115 & 0.507 \\
-\midrule
-TAGNN               & 0.850 & 0.792 & 0.826 & 0.809 & 0.907 & 0.860 & 0.146 & 0.830 \\
-MHFIN               & 0.850 & 0.792 & 0.826 & 0.809 & 0.911 & \textbf{0.899} & 0.154 & 1.070 \\
-CCF fusion          & 0.867 & 0.800 & 0.870 & 0.833 & 0.931 & 0.916 & 0.119 & 0.406 \\
-\bottomrule
-\end{tabular}
+\begin{table}[t]
+  \centering
+  \caption{Characteristics of the study cohort (encounter level).}
+  \label{tab:cohort}
+  \small
+  \input{tables/tab_cohort.tex}
 \end{table}
 
-Two findings stand out. First, the staged ablation over the graph
-family confirms the value of each component: the plain GNN reaches
-F1\,$=$\,0.760, adding knowledge-graph edges raises it to 0.809, and
-adding longitudinal features raises it further to 0.826 (with ROC-AUC
-improving from 0.887 to 0.929). Each architectural choice therefore
-contributes a measurable, monotone improvement.
+\subsection{Prediction tasks}
+Each sample is an \emph{index encounter} $e_t$ of a patient. The model may
+use $e_t$ and the patient's strictly earlier encounters
+$e_{t-L},\dots,e_{t-1}$ ($L=10$), but never the outcome of $e_t$ or any
+later encounter.
 
-Second, the strong tabular baseline XGBoost posts the highest raw
-scores in most columns, which is expected on a clean, fully specified
-synthetic cohort: gradient boosting is a very strong learner on dense
-tabular data. The value of the graph-based and fusion models lies in
-where they are not worse in aggregate. CCF matches the best F1 of the
-random forest (0.833) while substantially lowering log loss relative
-to the individual neural and graph models (0.406 versus 0.507--1.223),
-illustrating the effect of calibration on probability quality. Among
-the novel methods, MHFIN attains the best PR-AUC (0.899) and ties the
-knowledge-graph ROC-AUC (0.911) while remaining a purely tabular
+\emph{Task 1, 30-day readmission.} The label is positive if the patient
+was readmitted within 30 days of discharge from $e_t$ (all \NEnc{}
+encounters; prevalence \RateReadmit\%).
+
+\emph{Task 2, treatment escalation at the next stay.} For encounters that
+are followed by another encounter of the same patient (\NEsc{} samples),
+the label is positive if the next encounter shows intensification of
+glucose-lowering therapy: insulin started when it was not prescribed at
+$e_t$, any drug with an increased dose, or a larger number of concurrently
+prescribed glucose-lowering drugs than at $e_t$ (prevalence \RateEsc\%).
+Treatment intensification is a recognised marker of deteriorating
+glycaemic control \citep{khunti2013}.
+
+The readmission outcome of an \emph{earlier} encounter is known when the
+index encounter takes place (the readmission, if any, occurred before or
+at the index admission) and is therefore a legitimate input. The outcome
+of the index encounter is replaced by an ``unknown'' token for every
 model.
 
-\subsection{Ablation and Interpretable Artefacts}
+%======================================================================
+\section{Methods}
+\label{sec:methods}
 
-Table~\ref{tab:ablation} isolates the contributions of the three graph
-stages across all metrics. The monotone improvement corroborates the
-motivation of Section~\ref{sec:kg}: population knowledge and temporal
-features each add predictive signal. The dashboard additionally exposes
-an explanation probe for an exemplar test patient, the learned CCF
-model coefficients, and per-node attention weights, keeping the
-system's internal reasoning inspectable.
+Fig.~\ref{fig:framework} gives an overview. We first describe the
+knowledge graph, then the encounter encoder shared by all neural models,
+the temporal module and gates of TKGN, and finally the boosting-anchored
+variant TKGN-B.
 
-\begin{table}[!t]
-\caption{Ablation over the three graph-model stages.}
-\label{tab:ablation}
-\centering
-\small
-\setlength{\tabcolsep}{2.4pt}
-\renewcommand{\arraystretch}{1.05}
-\begin{tabular}{lccccccccc}
-\toprule
-Stage & Acc & Prec & Rec & F1 & ROC & PR & Brier & LL \\
-\midrule
-gnn            & 0.800 & 0.704 & 0.826 & 0.760 & 0.887 & 0.807 & 0.167 & 1.223 \\
-gnn\,+\,kg     & 0.850 & 0.792 & 0.826 & 0.809 & 0.911 & 0.871 & 0.115 & 0.615 \\
-gnn\,+\,kg\,+\,long. & 0.867 & 0.826 & 0.826 & 0.826 & 0.929 & 0.906 & 0.115 & 0.507 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig_framework.pdf}
+  \caption{Overview of TKGN and TKGN-B. Every encounter is encoded with
+  knowledge-grounded code embeddings; earlier encounters are summarised
+  and combined with the index encounter through history-reliability
+  gates. TKGN-B adds the network output to an out-of-fold gradient
+  boosting logit.}
+  \label{fig:framework}
+\end{figure*}
 
-%----------------------------------------------------------------------
-\section{Serving Layer and Web Interface}
+\subsection{Hybrid clinical knowledge graph}
+\label{sec:kg}
+Let $\mathcal{V}$ be the set of concept nodes. \emph{Ontology edges}
+connect each ICD-9-CM code to its four-character subcategory, its
+three-character category, its chapter (17 numeric chapters plus the V and
+E supplementary classifications) and a root node; a level is skipped when
+it would repeat the text of the next level. Glucose-lowering drugs are
+linked to their pharmacological classes (biguanide, sulfonylurea,
+meglitinide, thiazolidinedione, alpha-glucosidase inhibitor, insulin).
+A node is retained only if it is observed in at least five training
+encounters, so that rare or unseen codes are represented through their
+closest retained ancestors.
 
-All pipeline outputs -- metric tables, ablation records, split
-meta-data, trajectory clusters, CCF weights, explanation probes, and the
-knowledge-graph file -- are consumed by a FastAPI backend. The API
-exposes resource endpoints for metrics, ablation, split summary,
-patients, dataset rows, explanations, clusters, fusion weights, the
-knowledge graph, single-patient inference, and dataset ingestion. A
-React dashboard built with Vite consumes these endpoints and
-visualises the model comparison, the patient-level trajectory, the
-interactive knowledge graph, feature explanations, clustering, ablation
-comparison, and fusion weights. Fig.~\ref{fig:screenshot} shows the
-model-comparison overview served by the deployed system.
+\emph{Co-morbidity edges} connect three-character categories $i,j$ that
+co-occur in the same training encounter more often than expected. With
+$n_{ij}$ the number of training encounters listing both categories and
+$N$ the number of training encounters,
+\begin{equation}
+  \mathrm{PPMI}(i,j) = \max\!\Big(0,\ \log \frac{n_{ij}\,N}{n_i\,n_j}\Big),
+\end{equation}
+computed only for pairs with $n_{ij}\ge 20$ and pruned to the ten strongest
+partners of each node. The symmetric normalised adjacency with self-loops
+is $\hat{\vect{A}} = \vect{D}^{-1/2}(\vect{P}+\vect{I})\vect{D}^{-1/2}$,
+where $\vect{P}$ holds the PPMI weights. Both edge types are estimated from
+the training partition only.
 
-\begin{figure}[!t]
-\centering
-\includegraphics[width=\columnwidth]{figures/overview.png}
-\caption{Model-comparison overview page. The best model, aggregate
-statistics, and the ten-model metric table are rendered from the REST
-endpoint.}
-\label{fig:screenshot}
-\end{figure}
+\subsection{Encounter encoder}
+\label{sec:encoder}
+\paragraph{Knowledge-grounded code embeddings}
+Let $\vect{E}\in\R^{|\mathcal{V}|\times d}$ be free node embeddings. One
+propagation step over the co-morbidity graph gives
+\begin{equation}
+  \tilde{\vect{E}} = \vect{E} + \tanh\!\big(\hat{\vect{A}}\,\vect{E}\,\vect{W}_c\big),
+  \qquad \vect{W}_c \leftarrow \vect{0}\ \text{at initialisation},
+\end{equation}
+so the graph changes a representation only when training finds it
+useful. For a code $c$ with retained own node $v_c$ (if any) and proper
+ancestors $\mathcal{A}(c)$,
+\begin{equation}
+  \alpha_{c,a} = \operatorname{softmax}_{a\in\mathcal{A}(c)}
+    \Big(\vect{w}^\top \tanh\big(\vect{W}_\alpha[\tilde{\vect{e}}_{v_c};\tilde{\vect{e}}_a] + \vect{b}_\alpha\big)\Big),
+  \qquad
+  \vect{g}_c = \tilde{\vect{e}}_{v_c} + \sum_{a\in\mathcal{A}(c)} \alpha_{c,a}\,\tilde{\vect{e}}_a ,
+\end{equation}
+with $\tilde{\vect{e}}_{v_c}=\vect{0}$ for codes without a retained node.
+Unlike the convex combination of GRAM \citep{choi2017gram}, the residual
+form keeps frequent codes specific while rare codes borrow strength from
+the hierarchy. The three diagnosis slots of an encounter receive learned
+position embeddings and are pooled by attention.
 
-%----------------------------------------------------------------------
-\section{Discussion}
+\paragraph{Medications} Each drug $k$ is a token
+$\vect{u}_k + \vect{R}^\top\vect{p}_k + \vect{s}_{\sigma_k}$, where
+$\vect{p}_k$ is the (normalised) class-membership vector, $\vect{R}$ holds
+class embeddings and $\sigma_k\in\{\text{steady, up, down}\}$ is the
+prescription state. Active drugs are averaged; a learned vector represents
+``no glucose-lowering drug''.
 
-The results are best understood through three lenses. From a modelling
-perspective, the ablation shows that relational structure and temporal
-features are \emph{complementary} sources of signal in patient-level
-prediction. From a practical perspective, the calibrated fusion
-demonstrates that per-model reliability weighting can improve
-probability quality without changing any base model. From a
-deployment perspective, the layered architecture means each component
--- generator, graph builder, feature extractor, model, calibrator, or
-visualisation -- can be replaced independently, which is valuable in a
-research tool that must track evolving clinical endpoints.
+\paragraph{Administrative, demographic and laboratory fields}
+Twelve categorical fields (race, sex, age band, admission type, discharge
+disposition, admission source, payer, specialty, HbA1c result, glucose
+result, medication change, diabetes medication) are embedded
+individually ($d_f=16$) and concatenated. The eight counts (length of
+stay, laboratory procedures, procedures, medications, outpatient,
+emergency and inpatient visits in the prior year, number of diagnoses)
+are represented by quantile-bin embeddings together with their
+log-transformed standardised value \citep{gorishniy2022}. All vocabularies,
+bin edges and scaling constants are fitted on training encounters.
 
-It should be stressed that this is a research and decision-support
-prototype. The synthetic cohort used for the headline numbers is
-deliberately stylised, and no clinical claim is intended.
+\paragraph{Outcome token} For earlier encounters the known readmission
+outcome (none, after 30 days, within 30 days) is embedded; the index
+encounter always receives the ``unknown'' token. The five parts are
+concatenated and mapped by a two-layer perceptron with layer
+normalisation to $\vect{h}\in\R^{d}$.
 
-%----------------------------------------------------------------------
-\section{Conclusion and Future Work}
+\subsection{Temporal knowledge-gated network}
+\label{sec:tkgn}
+Let $\vect{h}_t$ be the index encounter and
+$\vect{H}=[\vect{h}_{t-n_t},\dots,\vect{h}_{t-1}]$ the $n_t\le L$ earlier
+encounters. TKGN computes three views of the past.
 
-We presented a complete longitudinal knowledge-graph-aware framework
-for diabetes progression modelling, with four novel components --
-TAGNN, MHFIN, CCF, and PTC -- embedded in a ten-model pipeline, a
-patient-level evaluation protocol, and a live web serving layer. The
-staged ablation demonstrates consistent gains from knowledge-graph
-edges and longitudinal features, and calibrated fusion improves
-probability quality over individual neural models.
+\emph{History summary.} A GRU \citep{cho2014gru} run over $\vect{H}$
+yields its last state $\vect{s}_{\text{gru}}$. Recency-aware attention uses
+the index encounter as query:
+\begin{equation}
+  \beta_j = \operatorname{softmax}_j\!\left(\frac{(\vect{W}_q\vect{h}_t)^\top
+     \vect{W}_k(\vect{h}_j + \vect{r}_{t-j})}{\sqrt{d}}\right),\qquad
+  \vect{s}_{\text{att}} = \sum_j \beta_j \vect{h}_j ,
+\end{equation}
+where $\vect{r}_{t-j}$ embeds how many stays ago encounter $j$ occurred.
+The summary is $\vect{s}=\vect{W}_s[\vect{s}_{\text{gru}};\vect{s}_{\text{att}}]$,
+or a learned vector $\vect{s}_\varnothing$ when $n_t=0$.
 
-Future work will validate the framework on the real Pima dataset and on
-external longitudinal cohorts, benchmark TAGNN attention weights against
-clinician-annotated progression signals, and extend CCF to asymmetric
-loss weighting for screening applications where false negatives are
-more costly than false positives.
+\emph{Change since the last stay.}
+$\boldsymbol{\delta} = \vect{h}_t - \vect{h}_{t-1}$ ($\vect{0}$ if $n_t=0$)
+captures escalation of treatment, utilisation or diagnostic burden
+between consecutive stays.
 
-\begin{thebibliography}{99}\scriptsize
+\emph{History-reliability gates.} With $\boldsymbol{\ell}(n_t)$ an
+embedding of the history length and
+$\vect{c}=[\vect{h}_t;\vect{s};\boldsymbol{\delta};\boldsymbol{\ell}(n_t)]$,
+\begin{equation}
+  \vect{g}_s = \sigma(\vect{W}_{gs}\vect{c}+\vect{b}_{gs}),\quad
+  \vect{g}_\delta = \sigma(\vect{W}_{g\delta}\vect{c}+\vect{b}_{g\delta}),\quad
+  \vect{z} = \vect{h}_t + \vect{g}_s\odot\vect{s}
+           + \vect{g}_\delta\odot\vect{W}_\delta\boldsymbol{\delta}.
+\end{equation}
+The gates are feature-wise and depend on the patient: a single earlier
+stay with an unremarkable course can be down-weighted, while a long
+history of early readmissions can dominate the representation.
 
-\bibitem{ada} American Diabetes Association, ``Standards of care in
-diabetes -- 2024,'' \emph{Diabetes Care}, vol.~47, suppl.~1, 2024.
+\emph{Outputs and loss.} A two-layer head maps $\vect{z}$ to the risk
+logit $f(\vect{z})$. An auxiliary linear head predicts the three-level
+readmission outcome of the index stay (none, $>30$ days, $<30$ days), which
+provides a richer training signal than the binary label
+\citep{caruana1997}. The training objective is
+\begin{equation}
+  \mathcal{L} = \mathrm{BCE}\big(y, \sigma(f(\vect{z}))\big)
+   + \lambda\,\mathrm{CE}\big(o, \operatorname{softmax}(\vect{W}_o\vect{z})\big),
+   \qquad \lambda = 0.5 .
+\end{equation}
+The auxiliary head is used only during training.
 
-\bibitem{scarselli} F.~Scarselli, M.~Gori, A.~C.~Tsoi,
-M.~Hagenbuchner, and G.~Monfardini, ``The graph neural network model,''
-\emph{IEEE Transactions on Neural Networks}, vol.~20, no.~1,
-pp.~61--80, 2009.
+\subsection{Boosting-anchored TKGN (TKGN-B)}
+\label{sec:tkgnb}
+Gradient boosting captures threshold effects in counts and categorical
+interactions very efficiently, whereas TKGN brings longitudinal and
+relational structure. TKGN-B combines them additively on the logit scale:
+\begin{equation}
+  \operatorname{logit} P(y=1\mid e_{\le t}) = \phi(\vect{x}_t) + f(\vect{z}_t),
+\end{equation}
+where $\phi$ is a LightGBM model \citep{ke2017lightgbm} trained on the
+tabular view $\vect{x}_t$ of the same information (Section~\ref{sec:baselines})
+and $f$ is the TKGN head. $\phi$ is kept fixed while TKGN is trained.
+Using in-sample boosting logits as offsets would give the network a
+target that is already over-fitted, so the training offsets are
+\emph{out-of-fold}: training patients are split into five groups, and
+the offset of each training encounter comes from a LightGBM model fit on
+the other four groups with the hyper-parameters and number of trees
+selected on the validation set. Validation and test offsets come from the
+LightGBM model fit on all training patients. The network therefore learns
+a residual correction, conceptually one additional boosting stage
+\citep{friedman2001} implemented by a sequence model.
 
-\bibitem{kipf2017} T.~N.~Kipf and M.~Welling, ``Semi-supervised
-classification with graph convolutional networks,'' in \emph{Proc.
-International Conference on Learning Representations (ICLR)}, 2017.
+%======================================================================
+\section{Experimental design}
+\label{sec:experiments}
 
-\bibitem{hamilton2017} W.~L.~Hamilton, R.~Ying, and J.~Leskovec,
-``Inductive representation learning on large graphs,'' in \emph{Proc.
-Advances in Neural Information Processing Systems (NeurIPS)}, 2017.
+\subsection{Validation designs}
+\emph{Patient-grouped split.} Patients, not encounters, were randomly
+assigned to training (70\%), validation (10\%) and test (20\%)
+partitions, stratified by whether a patient has any positive sample, so
+that no person contributes to more than one partition. The procedure was
+repeated five times with different partitions and model seeds. For the
+first repeat the partition sizes are \NReadmitGrpTrain{} / \NReadmitGrpVal{}
+/ \NReadmitGrpTest{} encounters (readmission) and \NEscGrpTrain{} /
+\NEscGrpVal{} / \NEscGrpTest{} (escalation).
 
-\bibitem{vaswani} A.~Vaswani \etal, ``Attention is all you need,'' in
-\emph{Proc. NeurIPS}, 2017, pp.~5998--6008.
+\emph{Temporal (prospective) split.} Encounters were ordered by identifier
+and cut at the 70th and 80th percentiles: models were fitted on the
+earliest 70\%, tuned on the next 10\% and tested on the most recent 20\%
+of admissions. A test encounter may belong to a patient seen earlier, as
+in deployment, but its history only contains earlier stays. For the
+escalation task an index encounter is kept only if its next encounter
+falls in the same period, so no label is derived from a later period.
+Three seeds were run.
 
-\bibitem{guo} C.~Guo, G.~Pleiss, Y.~Sun, and K.~Q.~Weinberger, ``On
-calibration of modern neural networks,'' in \emph{Proc. International
-Conference on Machine Learning (ICML)}, 2017, pp.~1321--1330.
+\subsection{Baselines}
+\label{sec:baselines}
+\emph{Tabular learners} use a design matrix with the eight counts,
+one-hot categorical fields, drug states, multi-hot three-character
+diagnosis categories (at least 50 training occurrences), chapter
+indicators and hand-crafted history aggregates computed from strictly
+earlier stays (number of earlier stays, earlier readmissions within and
+after 30 days, the outcome of the last stay, mean length of stay,
+medications, diagnoses and laboratory procedures over earlier stays,
+earlier insulin use, and changes since the last stay); 524 features in
+total. We trained L2-regularised logistic regression, random forest
+\citep{breiman2001}, XGBoost \citep{chen2016xgboost}, LightGBM
+\citep{ke2017lightgbm} and a multilayer perceptron. \emph{Sequence
+models} use the same encounter encoder as TKGN with flat code embeddings:
+a GRU over the encounter sequence in the spirit of Doctor AI
+\citep{choi2016doctorai}, RETAIN \citep{choi2016retain} and a two-layer
+Transformer encoder \citep{vaswani2017}. All sequence baselines receive
+the outcomes of earlier stays, exactly like TKGN.
 
-\bibitem{lime} M.~T.~Ribeiro, S.~Singh, and C.~Guestrin, ``Why should
-I trust you? Explaining the predictions of any classifier,'' in
-\emph{Proc. ACM SIGKDD}, 2016, pp.~1135--1144.
+\subsection{Training and model selection}
+Hyper-parameters of the tabular learners were selected on the validation
+partition from small grids (regularisation strength; minimum leaf size;
+tree depth and minimum child weight; number of leaves and minimum child
+samples; hidden sizes and weight decay). Boosting used a learning rate of
+0.03 with early stopping on validation AUROC (up to 2{,}000 trees). All
+neural models used $d=64$, dropout 0.3, AdamW \citep{loshchilov2019} with
+learning rate $5\times10^{-4}$, weight decay $10^{-3}$, batch size 512,
+gradient clipping at 1.0, and early stopping on validation AUROC (patience
+4, at most 30 epochs). Architectural choices for TKGN (additive code
+encoder, auxiliary head, regularisation) were fixed using validation data
+of the first grouped repeat before any test evaluation. No test data were
+used for any decision. Models were implemented in PyTorch
+\citep{paszke2019} and scikit-learn \citep{pedregosa2011}.
 
-\bibitem{shap} S.~M.~Lundberg and S.-I. Lee, ``A unified approach to
-interpreting model predictions,'' in \emph{Proc. NeurIPS}, 2017,
-pp.~4765--4774.
+\subsection{Metrics and statistical analysis}
+Discrimination was measured by the area under the ROC curve (AUROC,
+primary) and the area under the precision--recall curve (AUPRC).
+Calibration was measured by the Brier score, the expected calibration
+error over ten equal-width bins (ECE, \citealp{naeini2015}) and the
+calibration slope and intercept from logistic recalibration
+\citep{vancalster2019}. Sensitivity, specificity, positive predictive
+value and F1 were computed at a threshold that maximised F1 on the
+validation partition and was then frozen. For the grouped design we
+report mean and standard deviation over the five repeats. For the first
+test run of each design we computed 95\% confidence intervals with a
+patient-clustered percentile bootstrap (1{,}000 resamples; patients
+rather than encounters are resampled, \citealp{efron1993}), paired
+bootstrap intervals for AUROC differences, and the DeLong test for
+correlated AUROCs \citep{delong1988} using the fast algorithm of
+\citet{sun2014}. The DeLong test treats encounters as independent and is
+therefore reported together with the clustered bootstrap. Across the five
+grouped repeats we also report how often a model won and a paired
+$t$-test on per-repeat AUROC differences.
 
-\bibitem{breiman} L.~Breiman, ``Random forests,'' \emph{Machine
-Learning}, vol.~45, no.~1, pp.~5--32, 2001.
+\subsection{Ablation, data efficiency, explanation and fairness}
+Seven TKGN variants, each removing one component, were trained on the
+first \NAblRuns{} grouped repeats. Learning curves retrained LightGBM,
+GRU, TKGN and TKGN-B on 5, 10, 25 and 50\% of the training patients of
+the first repeat with the same test patients. Global explanations were
+obtained by permutation importance of input groups for TKGN (AUROC drop
+over three permutations) and exact TreeSHAP values \citep{lundberg2020}
+for the LightGBM anchor of TKGN-B. Subgroup performance was examined by
+race, sex, age band, number of earlier stays and HbA1c testing
+\citep{obermeyer2019}.
 
-\bibitem{xgboost} T.~Chen and C.~Guestrin, ``XGBoost: A scalable tree
-boosting system,'' in \emph{Proc. ACM SIGKDD}, 2016, pp.~785--794.
+%======================================================================
+\input{sections/results.tex}
 
-\bibitem{pima} J.~W.~Smith, J.~E.~Everhart, W.~C.~Dickson, W.~C.
-Knowler, and R.~S.~Johannes, ``Using the ADAP learning algorithm to
-forecast the onset of diabetes mellitus,'' in \emph{Proc. Symposium on
-Computer Applications and Medical Care}, 1988, pp.~261--265.
+%======================================================================
+\input{sections/discussion.tex}
 
-\end{thebibliography}
+%======================================================================
+\section*{Data and code availability}
+The Diabetes 130-US Hospitals database is publicly available from the UCI
+Machine Learning Repository (dataset 296, CC BY 4.0). All code needed to
+reproduce the cohort, experiments, tables and figures, together with the
+derived result files, is available in the project repository. The
+repository also contains an interactive dashboard and a REST service for
+exploring the results; these are research prototypes and not medical
+devices.
+
+\section*{Declaration of competing interest}
+The authors declare no competing interests.
+
+\section*{Funding}
+[To be completed by the authors.]
+
+\section*{CRediT authorship contribution statement}
+[To be completed by the authors.]
+
+\bibliographystyle{elsarticle-harv}
+\bibliography{refs}
 
 \end{document}

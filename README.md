@@ -1,144 +1,127 @@
-# Diabetes Progression Research System
+# TKGN: temporal knowledge-gated risk models on real diabetes inpatient records
 
-A longitudinal research and decision-support system for diabetes progression.
+A research and decision-support system that predicts, at hospital discharge,
+
+1. **30-day readmission**, and
+2. **escalation of glucose-lowering treatment at the patient's next stay**
+
+from **real, de-identified electronic health records**: the
+[Diabetes 130-US Hospitals 1999–2008](https://archive.ics.uci.edu/dataset/296)
+database (Strack et al., *BioMed Research International* 2014; UCI dataset 296,
+CC BY 4.0). 101,766 inpatient encounters from 130 US hospitals; a persistent
+patient number links repeat stays, which makes the data genuinely
+longitudinal. **No synthetic, simulated or augmented records are used
+anywhere.**
+
 Not a diagnostic tool.
 
-Built with **React + FastAPI** (no Streamlit).
+## What is new
 
-## Features
+| Component | Idea |
+|---|---|
+| **Hybrid clinical knowledge graph** | ICD-9-CM hierarchy (code → subcategory → category → chapter) + drug → pharmacological class + a co-morbidity graph (PPMI between diagnosis categories) estimated on training encounters only |
+| **Knowledge-grounded code encoder** | each code keeps its own embedding and adds an attention-weighted mix of its ancestors; category embeddings are refined by zero-initialised co-morbidity propagation, so rare codes borrow strength while frequent codes stay specific |
+| **TKGN — Temporal Knowledge-Gated Network** | GRU + recency attention over earlier stays, an explicit change-since-last-stay (delta) signal, and **history-reliability gates** conditioned on the amount of history, plus an auxiliary 3-level outcome head |
+| **TKGN-B** | TKGN trained as a residual on top of an **out-of-fold LightGBM logit**, i.e. one extra "boosting stage" implemented by a knowledge-aware sequence model |
+| **Leakage-controlled protocol** | patient-disjoint repeated splits (5×), prospective temporal split, validation-only tuning and thresholds, clustered-bootstrap CIs, DeLong tests, calibration, ablations, learning curves, subgroup/fairness audit |
 
-- Loads real public datasets (Pima Indians) or generates synthetic cohorts
-- Knowledge graph construction with observed and assumed edges
-- 10 evaluated models including 4 novel techniques (TAGNN, MHFIN, CCF, PTC)
-- React web dashboard for exploring models, patients, and predictions
-- REST API for data, metrics, inference, and retraining
+## Results
 
-## Architecture
-
-```
-┌──────────────────┐     HTTP      ┌──────────────────────┐
-│  React frontend  │  ─────────►   │  FastAPI backend     │
-│  web/ (Vite)     │  /api/*       │  src/api.py          │
-└──────────────────┘               │  + pipeline, models  │
-                                   └──────────────────────┘
-```
-
-- Dev mode: Vite dev server on port 5173, proxies `/api` to FastAPI on 8000.
-- Prod mode: FastAPI serves the built React app from `web/dist`.
+All numbers are produced by `python -m src.run_pipeline` and written to
+`outputs/`. See `outputs/summary.json` (mean ± SD over runs),
+`outputs/significance.json` (CIs and tests) and the manuscript in
+`paper/`. A short digest is kept in [`FINAL_SUMMARY.md`](FINAL_SUMMARY.md).
 
 ## Quick start
 
-### 1. Train the models
-
-```powershell
+```bash
 pip install -r requirements.txt
 
-# train on synthetic data
+# 1. verify data integrity and leakage guards (13 tests)
+python -m pytest -q
+
+# 2. run the complete experimental protocol (≈4–5 h on 4 CPU cores)
 python -m src.run_pipeline
+#    or a quick smoke run (1 repeat, no ablations / temporal / learning curve)
+python -m src.run_pipeline --quick
 
-# train on the real Pima dataset
-python -m src.run_pipeline --real
+# 3. explanations (permutation importance, TreeSHAP, example patients)
+python -m src.explain
+
+# 4. manuscript tables, macros and figures from the outputs
+python paper/make_tables.py
+python paper/make_figures.py
+cd paper && latexmk -pdf main.tex
 ```
 
-### 2. Start the backend
+The raw file ships in `data/raw/diabetic_data.csv` and is verified by SHA-256
+before use; if it is missing it is downloaded from UCI (or an identical
+mirror) and verified again.
 
-```powershell
-uvicorn src.api:app --reload
-# http://127.0.0.1:8000  → served React app (after build)
-# http://127.0.0.1:8000/docs → API docs
+## Web application (React + FastAPI)
+
+```bash
+cd web && npm install && npm run build && cd ..
+uvicorn src.api:app --reload        # http://127.0.0.1:8000
 ```
 
-### 3. Build the frontend (first time only)
+Pages: results, statistics, ablation, data efficiency, calibration,
+fairness, explainability, knowledge graph, patient explorer (real held-out
+test patients) and a risk calculator that scores a posted encounter
+history with TKGN-B.
 
-```powershell
-cd web
-npm install
-npm run build
-```
+For development: `cd web && npm run dev` (http://localhost:5173, proxies
+`/api` to port 8000).
 
-FastAPI now serves the built React app at `http://127.0.0.1:8000`.
-
-### 4. Development mode (optional)
-
-```powershell
-cd web
-npm run dev
-# http://localhost:5173  with hot reload; proxies /api to port 8000
-```
-
-If you change React code, run `npm run build` again to refresh the
-production bundle served by FastAPI.
-
-## Custom data
-
-Provide a CSV with these columns: `patient_id`, `visit`, `date`, `age`,
-`hba1c`, `glucose`, `bmi`, `systolic_bp`, `diastolic_bp`, `conditions`.
-
-```powershell
-python -m src.run_pipeline --input path/to/data.csv
-```
-
-Or set the `DATA_SOURCE` environment variable to a URL. Alternatively use
-`POST /api/ingest` with `{"source": "..."}` or `{"use_real": true}`.
-
-## Updating the data without retraining
-
-The "new patient" form runs inference only. To retrain on new data, run the
-pipeline again or call `POST /api/ingest`.
-
-## Model evaluation
-
-The pipeline trains and evaluates these models:
-
-| Model | Type |
-|---|---|
-| Logistic Regression | Baseline |
-| Random Forest | Baseline |
-| XGBoost | Baseline |
-| MLP | Baseline |
-| GNN | Graph |
-| GNN + KG | Graph + knowledge |
-| GNN + KG + longitudinal | Graph + knowledge + temporal |
-| TAGNN | Novel (temporal attention) |
-| MHFIN | Novel (feature interactions) |
-| CCF Fusion | Novel (calibrated stacking) |
-
-Metrics (accuracy, precision, recall, F1, ROC-AUC, PR-AUC, Brier score,
-log loss) are written to `outputs/model_metrics.json`.
-
-## API endpoints
+### REST endpoints
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/api/metrics` | All model metrics |
-| GET | `/api/ablation` | Ablation-stage metrics |
-| GET | `/api/split` | Dataset + split summary |
-| GET | `/api/dataset` | All visits, or `?patient_id=` for one patient |
-| GET | `/api/patients` | List of patient IDs |
-| GET | `/api/explanation` | Saved feature-contribution probe |
-| GET | `/api/clusters` | Trajectory clustering summary |
-| GET | `/api/fusion` | CCF model weights |
-| GET | `/api/graph` | Knowledge graph nodes/edges |
-| POST | `/api/predict` | Single-patient inference |
-| POST | `/api/ingest` | Retrain from CSV/URL/real dataset |
+| GET | `/api/overview` | dataset summary and split sizes |
+| GET | `/api/summary` | test metrics (mean ± SD) per task / split / model |
+| GET | `/api/significance` | bootstrap CIs, DeLong and paired bootstrap tests |
+| GET | `/api/repeat-tests` | paired comparison across repeats |
+| GET | `/api/ablation` | TKGN component ablation |
+| GET | `/api/learning-curve` | AUROC vs training-set size |
+| GET | `/api/calibration` | reliability curves |
+| GET | `/api/subgroups` | subgroup / fairness metrics |
+| GET | `/api/gates` | history gates vs number of earlier stays |
+| GET | `/api/explanations` | permutation importance, TreeSHAP, examples |
+| GET | `/api/graph` | knowledge-graph summary |
+| GET | `/api/patients`, `/api/patients/{id}` | held-out patients and their predictions |
+| GET | `/api/schema` | allowed values for the risk form |
+| POST | `/api/predict` | `{"task": "readmit30", "encounters": [...]}` → TKGN-B risk |
 
 ## Project structure
 
 ```
 src/
-  run_pipeline.py      — orchestrates the full pipeline
-  models.py            — baseline + graph model definitions
-  novel.py             — TAGNN, MHFIN, CCF, PTC
-  datasets.py          — real dataset loaders
-  data_source.py       — validation and loading
-  knowledge_graph.py   — graph construction
-  inference.py         — single-patient inference
-  metrics.py           — evaluation utilities
-  generate_data.py     — synthetic cohort fallback
-  api.py               — FastAPI REST backend + static web serving
-web/
-  src/                 — React source (pages, styles, API client)
-  dist/                — built bundle served by FastAPI
-data/                  — datasets
-outputs/               — metrics, graphs, model artifacts
+  data.py            real-data loader (checksum), cohort, labels, splits, history index
+  icd9.py            ICD-9-CM chapters/hierarchy, drug classes
+  knowledge_graph.py hybrid ontology + co-morbidity graph (train-only)
+  features.py        sequence arrays and tabular design matrix
+  neural.py          TKGN, GRU, RETAIN, Transformer; batching and training
+  baselines.py       LR, RF, XGBoost, LightGBM, MLP with validation tuning
+  evaluation.py      metrics, calibration, clustered bootstrap, DeLong
+  run_pipeline.py    experiment runner (resumable jobs)
+  analysis.py        aggregation into outputs/*.json
+  explain.py         permutation importance, TreeSHAP, attention examples
+  inference.py       single-patient TKGN-B inference
+  api.py             FastAPI backend + static web app
+tests/               data-integrity and leakage tests
+web/                 React dashboard (Vite)
+paper/               journal manuscript (LaTeX), figure/table generators
+data/raw/            the unmodified UCI release
+outputs/             results (JSON/CSV), deployable models, logs
 ```
+
+## Limitations
+
+* One public data source; external validation on an independent hospital
+  system is still needed.
+* The release has no calendar dates; stays are ordered by encounter
+  identifier and time gaps between stays are unknown.
+* Only three diagnosis codes per stay are recorded, and most diagnosis
+  codes are truncated to three characters (diabetes codes excepted).
+* Readmission is recorded only for encounters within the participating
+  systems.
