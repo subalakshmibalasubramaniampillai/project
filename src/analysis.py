@@ -44,6 +44,8 @@ MAIN_MODELS = ["logistic_regression", "random_forest", "xgboost", "lightgbm",
 def _load_runs():
     runs = []
     for path in sorted(RUNS.glob("*.json")):
+        if "_kg_f" in path.stem:   # knowledge-graph data-efficiency follow-up
+            continue
         record = json.loads(path.read_text(encoding="utf-8"))
         record["name"] = path.stem
         runs.append(record)
@@ -221,6 +223,8 @@ def _ablation(runs):
             if len(values) > 1 else 0.0,
             "auprc": float(np.mean([v[2] for v in values])),
             "delta_auroc_vs_full": float(np.mean(deltas)) if deltas else 0.0,
+            "delta_sd": float(np.std(deltas, ddof=1)) if len(deltas) > 1 else 0.0,
+            "delta_wins": int(sum(d > 0 for d in deltas)),
         })
     return rows
 
@@ -329,6 +333,26 @@ def dataset_summary(cohort):
     }
 
 
+def temporal_shift_summary(cohort):
+    """Distribution shift between the temporal training and test periods."""
+    from .data import temporal_split
+    split = temporal_split(cohort, "readmit30")
+    out = {}
+    for name, rows in (("train", split["train"]), ("test", split["test"])):
+        sub = cohort.iloc[rows]
+        out[name] = {
+            "n": int(len(rows)),
+            "number_diagnoses_mean": float(sub["number_diagnoses"].mean()),
+            "number_diagnoses_max": int(sub["number_diagnoses"].max()),
+            "share_with_history": float((sub["order"] > 0).mean()),
+            "max_prior_stays": int(sub["order"].max()),
+            "number_emergency_mean": float(sub["number_emergency"].mean()),
+            "readmit30_rate": float(sub["y_readmit30"].mean()),
+            "a1c_measured": float((sub["A1Cresult"] != "None").mean()),
+        }
+    return out
+
+
 def aggregate():
     from .data import build_cohort, grouped_split
     from .knowledge_graph import ClinicalKnowledgeGraph
@@ -339,6 +363,7 @@ def aggregate():
         return
     cohort = build_cohort()
     save_json(dataset_summary(cohort), OUT / "dataset_summary.json")
+    save_json(temporal_shift_summary(cohort), OUT / "temporal_shift.json")
     kg = ClinicalKnowledgeGraph().fit(
         cohort, grouped_split(cohort, "readmit30", seed=1000)["train"])
     kg.save(OUT)

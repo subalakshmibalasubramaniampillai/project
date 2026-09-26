@@ -467,10 +467,16 @@ samples; hidden sizes and weight decay). Boosting used a learning rate of
 neural models used $d=64$, dropout 0.3, AdamW \citep{loshchilov2019} with
 learning rate $5\times10^{-4}$, weight decay $10^{-3}$, batch size 512,
 gradient clipping at 1.0, and early stopping on validation AUROC (patience
-4, at most 30 epochs). Architectural choices for TKGN (additive code
-encoder, auxiliary head, regularisation) were fixed using validation data
-of the first grouped repeat before any test evaluation. No test data were
-used for any decision. Models were implemented in PyTorch
+4, at most 30 epochs). Architectural choices for the neural models
+(quantile-bin and per-field embeddings in the shared encoder, the additive
+code encoder, the auxiliary head of TKGN, regularisation) were made during
+development on a separate random patient partition of the same cohort,
+mainly using its validation data, and were frozen before the evaluation
+runs reported here. Because all partitions are drawn from one cohort, some
+patients used for development also appear in evaluation test sets; this may
+bias the neural models slightly upwards and is discussed as a limitation.
+Within the evaluation runs, the test partitions were used only for the
+final assessment. Models were implemented in PyTorch
 \citep{paszke2019} and scikit-learn \citep{pedregosa2011}.
 
 \subsection{Metrics and statistical analysis}
@@ -495,7 +501,11 @@ $t$-test on per-repeat AUROC differences.
 
 \subsection{Ablation, data efficiency, explanation and fairness}
 Seven TKGN variants, each removing one component, were trained on the
-first \NAblRuns{} grouped repeats. Learning curves retrained LightGBM,
+first \NAblRuns{} grouped repeats. To test the pre-specified hypothesis
+that knowledge-graph code sharing matters most when data are scarce, TKGN
+and TKGN without the knowledge graph were additionally retrained on 5, 10
+and 25\% of the training patients in the first three grouped repeats (paired
+subsets and seeds). Learning curves retrained LightGBM,
 GRU, TKGN and TKGN-B on 5, 10, 25 and 50\% of the training patients of
 the first repeat with the same test patients. Global explanations were
 obtained by permutation importance of input groups for TKGN (AUROC drop

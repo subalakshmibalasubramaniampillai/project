@@ -8,6 +8,7 @@ Read-only result endpoints (produced by ``python -m src.run_pipeline``):
   GET  /api/significance      bootstrap CIs, DeLong and paired bootstrap tests
   GET  /api/repeat-tests      per-repeat paired AUROC comparisons
   GET  /api/ablation          TKGN component ablation
+  GET  /api/kg-efficiency     knowledge graph vs flat codes under data scarcity
   GET  /api/subgroups         fairness / subgroup performance
   GET  /api/calibration       reliability curves
   GET  /api/learning-curve    performance vs training-set size
@@ -90,6 +91,11 @@ def repeat_tests():
 @app.get("/api/ablation")
 def ablation():
     return _json("ablation.json")
+
+
+@app.get("/api/kg-efficiency")
+def kg_efficiency():
+    return _json("kg_efficiency.json")
 
 
 @app.get("/api/subgroups")

@@ -4,11 +4,12 @@ import {
   Tooltip, XAxis, YAxis,
 } from "recharts";
 import { useFetch } from "../useFetch";
-import { getAblation } from "../api";
+import { getAblation, getKgEfficiency } from "../api";
 import { ErrorBox, Loading, Selector, TASKS, fmt } from "../common";
 
 export default function Ablation() {
   const { data, loading, error } = useFetch(getAblation);
+  const kg = useFetch(getKgEfficiency);
   const [task, setTask] = useState("readmit30");
   if (loading) return <Loading what="ablation" />;
   if (error) return <ErrorBox error={error} />;
@@ -80,6 +81,34 @@ export default function Ablation() {
           </table>
         </div>
       </div>
+      {kg.data && (
+        <div className="card">
+          <h3>Knowledge graph under data scarcity</h3>
+          <p className="muted small">
+            TKGN with and without the knowledge graph retrained on subsets of
+            the training patients (paired subsets and seeds). Positive ΔAUROC
+            means the knowledge graph helps.
+          </p>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Training share</th><th>Runs</th><th>TKGN</th>
+                <th>TKGN − KG</th><th>ΔAUROC</th><th>KG better</th></tr></thead>
+              <tbody>
+                {kg.data.filter((r) => r.task === task).map((r) => (
+                  <tr key={r.fraction}>
+                    <td>{Math.round(r.fraction * 100)}%</td>
+                    <td className="num">{r.n_runs}</td>
+                    <td className="num">{fmt(r.tkgn_auroc, 4)}</td>
+                    <td className="num">{fmt(r.no_kg_auroc, 4)}</td>
+                    <td className="num">{r.delta_auroc > 0 ? "+" : ""}{fmt(r.delta_auroc, 4)} ± {fmt(r.delta_sd, 4)}</td>
+                    <td className="num">{r.wins}/{r.n_runs}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

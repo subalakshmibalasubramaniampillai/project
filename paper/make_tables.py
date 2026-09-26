@@ -178,6 +178,8 @@ def significance_table():
             macro(f"PBoot{key}", pv(b["p_value"]))
             if r:
                 macro(f"Wins{key}", f"{r['wins']}/{r['n_repeats']}")
+                macro(f"RepDauc{key}", f"{r['mean_delta_auroc']:+.4f}")
+                macro(f"RepP{key}", pv(r["t_test_p"]))
             if tentry:
                 macro(f"DaucTmp{key}", f"{tentry['bootstrap']['delta_auroc']:.4f}")
                 macro(f"PDelongTmp{key}", pv(tentry["delong"]["p_value"]))
@@ -243,6 +245,9 @@ def subgroup_table():
                 t, l = get("tkgn_b"), get("lightgbm")
                 cells += [f"{t['n']:,}" if t else "--",
                           f3(t["auroc"]) if t else "--", f3(l["auroc"]) if l else "--"]
+                if t and attr == "race" and g in ("AfricanAmerican", "Caucasian"):
+                    macro(f"SubRace{MACRO_TASK[task]}{'AA' if g == 'AfricanAmerican' else 'CA'}",
+                          f3(t["auroc"]))
                 if t and attr == "prior_encounters":
                     tag = {"0": "Zero", "1": "One", "2+": "Two"}[g]
                     macro(f"Sub{MACRO_TASK[task]}{tag}TKGNB", f3(t["auroc"]))
@@ -259,11 +264,14 @@ def subgroup_table():
         "Subgroup & $n$ & TKGN-B & LightGBM & $n$ & TKGN-B & LightGBM \\\\\n\\midrule\n"
         + "\n".join(lines) + "\n\\bottomrule\n\\end{tabular}\n", encoding="utf-8")
 
+    big = [r["ece"] for r in rows if r["model"] == "tkgn_b" and r["n"] >= 300]
+    macro("MaxSubEce", f"{max(big):.3f}")
     # fairness gaps
     for task in ["readmit30", "escalation"]:
         for attr in ["race", "gender", "age"]:
+            # groups with fewer than 300 test encounters give unstable AUROCs
             vals = [r["auroc"] for r in rows if r["task"] == task and r["attribute"] == attr
-                    and r["model"] == "tkgn_b"]
+                    and r["model"] == "tkgn_b" and r["n"] >= 300]
             if len(vals) > 1:
                 macro(f"Gap{MACRO_TASK[task]}{attr.capitalize()}", f3(max(vals) - min(vals)))
 
@@ -316,6 +324,37 @@ def explanation_macros():
         macro(f"TopShap{MACRO_TASK[task]}", e["treeshap"][0]["feature"].replace("_", "\\_"))
 
 
+def shift_macros():
+    sh = load("temporal_shift.json")
+    for part in ("train", "test"):
+        tag = part.capitalize()
+        macro(f"Shift{tag}DxMax", str(sh[part]["number_diagnoses_max"]))
+        macro(f"Shift{tag}DxMean", f"{sh[part]['number_diagnoses_mean']:.1f}")
+        macro(f"Shift{tag}Hist", f"{100 * sh[part]['share_with_history']:.1f}")
+        macro(f"Shift{tag}MaxPrior", str(sh[part]["max_prior_stays"]))
+        macro(f"Shift{tag}Emerg", f"{sh[part]['number_emergency_mean']:.2f}")
+
+
+def kg_table():
+    rows = load("kg_efficiency.json")
+    lines = []
+    for task in ["readmit30", "escalation"]:
+        for r in [x for x in rows if x["task"] == task]:
+            frac = f"{int(round(100 * r['fraction']))}\\%"
+            lines.append(
+                f"{TASK_NAMES[task].split(' at')[0].capitalize() if r is rows[0] or r['fraction'] == 0.05 else ''} & {frac} & "
+                f"{r['tkgn_auroc']:.4f} & {r['no_kg_auroc']:.4f} & {r['delta_auroc']:+.4f}$\\pm${r['delta_sd']:.4f} & "
+                f"{r['wins']}/{r['n_runs']} \\\\")
+            tag = {0.05: "Five", 0.1: "Ten", 0.25: "TwentyFive", 1.0: "Full"}[r["fraction"]]
+            macro(f"Kg{MACRO_TASK[task]}{tag}", f"{r['delta_auroc']:+.4f}")
+            macro(f"KgWins{MACRO_TASK[task]}{tag}", f"{r['wins']}/{r['n_runs']}")
+        lines.append("\\midrule")
+    (TAB / "tab_kg.tex").write_text(
+        "\\begin{tabular}{@{}llcccc@{}}\n\\toprule\n"
+        "Task & Training share & TKGN & TKGN $-$ KG & $\\Delta$AUROC (mean$\\pm$SD) & Wins \\\\\n\\midrule\n"
+        + "\n".join(lines[:-1]) + "\n\\bottomrule\n\\end{tabular}\n", encoding="utf-8")
+
+
 def split_macros():
     sp = load("splits.json")
     for key, v in sp.items():
@@ -328,7 +367,7 @@ def split_macros():
 if __name__ == "__main__":
     for fn in (cohort_table, results_tables, significance_table, ablation_table,
                subgroup_table, learning_macros, gate_macros, explanation_macros,
-               split_macros):
+               split_macros, shift_macros, kg_table):
         try:
             fn()
         except FileNotFoundError as exc:

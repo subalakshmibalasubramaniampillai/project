@@ -1,0 +1,287 @@
+\section{Results}
+\label{sec:results}
+
+\subsection{Discrimination and calibration}
+Tables~\ref{tab:readmit} and~\ref{tab:esc} and Fig.~\ref{fig:auroc} report
+test performance. For 30-day readmission under the patient-grouped design,
+TKGN-B reached a mean AUROC of \AucReadmitGrpTKGNB{}
+($\pm$\AucSdReadmitGrpTKGNB{}) and AUPRC of \PrcReadmitGrpTKGNB{}, the
+highest of all models, followed closely by XGBoost (\AucReadmitGrpXGB{}) and
+LightGBM (\AucReadmitGrpLGBM{}). The three sequence baselines were tightly
+grouped (GRU \AucReadmitGrpGRU{}, RETAIN \AucReadmitGrpRETAIN{},
+Transformer \AucReadmitGrpTRF{}), and TKGN on its own matched them
+(\AucReadmitGrpTKGN{}) without surpassing the boosting models. Logistic
+regression (\AucReadmitGrpLR{}) and the multilayer perceptron
+(\AucReadmitGrpMLP{}) were clearly weaker. For treatment escalation the
+ranking was similar: TKGN-B \AucEscGrpTKGNB{} ($\pm$\AucSdEscGrpTKGNB{}),
+LightGBM \AucEscGrpLGBM{}, XGBoost \AucEscGrpXGB{}, random forest
+\AucEscGrpRF{}, sequence models between \AucEscGrpRETAIN{} and
+\AucEscGrpGRU{}, and TKGN \AucEscGrpTKGN{}. The absolute level of
+discrimination is modest for both tasks, in line with the range usually
+reported for readmission \citep{kansagara2011}.
+
+\begin{table*}[t]
+  \centering
+  \caption{Test performance for 30-day readmission. Grouped split: mean$\pm$SD
+  over five patient-disjoint repeats; temporal split: mean over three seeds.
+  Slope: calibration slope; Sens./Spec.: at the validation-selected
+  threshold. Best AUROC per design in bold.}
+  \label{tab:readmit}
+  \scriptsize
+  \setlength{\tabcolsep}{3.2pt}
+  \input{tables/tab_results_readmit30.tex}
+\end{table*}
+
+\begin{table*}[t]
+  \centering
+  \caption{Test performance for treatment escalation at the next stay
+  (same layout as Table~\ref{tab:readmit}).}
+  \label{tab:esc}
+  \scriptsize
+  \setlength{\tabcolsep}{3.2pt}
+  \input{tables/tab_results_escalation.tex}
+\end{table*}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig_auroc.pdf}
+  \caption{Test AUROC of all models. Solid bars: patient-grouped split
+  (mean$\pm$SD over five repeats); hatched bars: temporal split (mean$\pm$SD
+  over three seeds).}
+  \label{fig:auroc}
+\end{figure*}
+
+Calibration was good for the boosting models and for TKGN-B
+(Fig.~\ref{fig:calibration}). On readmission, TKGN-B had an ECE of
+\EceReadmitGrpTKGNB{} and a calibration slope of \SlopeReadmitGrpTKGNB{},
+compared with \EceReadmitGrpLGBM{} and \SlopeReadmitGrpLGBM{} for LightGBM;
+the neural sequence models were somewhat less well calibrated (ECE between
+\EceReadmitGrpGRU{} and \EceReadmitGrpTRF{}). A slope slightly below one
+for TKGN-B indicates mildly over-dispersed risks, a pattern that could be
+removed by post-hoc recalibration on validation data. At the
+validation-selected thresholds, TKGN-B detected \SensReadmitGrpTKGNB{} of
+readmissions at a specificity of \SpecReadmitGrpTKGNB{}.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig_calibration.pdf}
+  \caption{Reliability curves on the first grouped test set (ten
+  equal-frequency bins).}
+  \label{fig:calibration}
+\end{figure}
+
+\subsection{Statistical comparison}
+Table~\ref{tab:significance} compares TKGN-B with every other model. Against
+the deep sequence models, the advantage of TKGN-B was consistent and
+statistically significant for readmission: it won all five repeats against
+GRU, RETAIN, the Transformer and TKGN, and on the first test set the AUROC
+difference to TKGN was \DaucReadmitTKGN{} (95\% CI \DaucLoReadmitTKGN{} to
+\DaucHiReadmitTKGN{}; DeLong $p$ \PDelongReadmitTKGN{}). For escalation it
+also won all five repeats against every sequence model (mean difference to
+TKGN \RepDaucEscTKGN{}, paired $t$-test $p$ \RepPEscTKGN{}), although the
+single-split bootstrap intervals, which are wider for this smaller task,
+included zero.
+
+Against the tuned gradient-boosting models the differences were small.
+For readmission TKGN-B exceeded LightGBM in \WinsReadmitLGBM{} repeats
+(mean $\Delta$AUROC \RepDaucReadmitLGBM{}, $p$ \RepPReadmitLGBM{}) and XGBoost
+in \WinsReadmitXGB{} (mean \RepDaucReadmitXGB{}); for escalation it exceeded
+both in \WinsEscLGBM{} repeats (mean \RepDaucEscLGBM{} and \RepDaucEscXGB{};
+$p$ \RepPEscLGBM{} and \RepPEscXGB{}). None of these differences reached
+significance on the first test set (bootstrap $p$ \PBootReadmitLGBM{} and
+\PBootEscLGBM{} versus LightGBM). We therefore interpret TKGN-B as matching
+the strongest tabular learners with a small but consistent advantage, not as
+a decisive improvement over them.
+
+\begin{table*}[t]
+  \centering
+  \caption{TKGN-B compared with each model. $\Delta$AUROC and its 95\%
+  patient-clustered bootstrap CI refer to the first grouped test set;
+  $p_\text{DeLong}$: DeLong test on the same set; Wins: repeats (of five)
+  in which TKGN-B had the higher test AUROC; $p_\text{temp}$: DeLong test on
+  the temporal test set (first seed). Positive values favour TKGN-B.}
+  \label{tab:significance}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \input{tables/tab_significance.tex}
+\end{table*}
+
+\subsection{Temporal validation and dataset shift}
+The temporal split tests models on the most recent admissions after
+fitting them on older ones. For treatment escalation TKGN-B was again the
+best model (AUROC \AucEscTmpTKGNB{} versus \AucEscTmpXGB{} for XGBoost and
+\AucEscTmpLGBM{} for LightGBM), and on the first seed its advantage was
+significant against every comparator (e.g.\ $\Delta$AUROC \DaucTmpEscLGBM{}
+versus LightGBM, DeLong $p$ \PDelongTmpEscLGBM{}). For readmission the
+picture differed: random forest achieved the highest AUROC
+(\AucReadmitTmpRF{}), while TKGN-B (\AucReadmitTmpTKGNB{}), LightGBM
+(\AucReadmitTmpLGBM{}) and XGBoost (\AucReadmitTmpXGB{}) were close to each
+other and TKGN alone reached \AucReadmitTmpTKGN{}.
+
+The temporal test period differs markedly from the training period. The
+maximum number of recorded diagnoses per stay rose from \ShiftTrainDxMax{}
+to \ShiftTestDxMax{} (mean \ShiftTrainDxMean{} versus \ShiftTestDxMean{}),
+the share of stays preceded by an earlier stay rose from
+\ShiftTrainHist\% to \ShiftTestHist\%, the longest history grew from
+\ShiftTrainMaxPrior{} to \ShiftTestMaxPrior{} earlier stays, and emergency
+visits in the prior year nearly doubled (\ShiftTrainEmerg{} versus
+\ShiftTestEmerg{}). Models that extrapolate linearly suffered most:
+logistic regression fell to an AUROC of \AucReadmitTmpLR{} with a
+calibration slope of \SlopeReadmitTmpLR{}, and the MLP to
+\AucReadmitTmpMLP{}. Tree ensembles, whose predictions are bounded outside
+the training range, and sequence models, which bound history through a fixed
+window and learned summaries, were much more robust.
+
+\subsection{Ablation}
+Table~\ref{tab:ablation} and Fig.~\ref{fig:ablation} show the effect of
+removing each TKGN component (first \NAblRuns{} grouped repeats). Access to
+earlier encounters was by far the most important element: without it,
+AUROC dropped by \AblReadmitTnohistory{} for readmission and
+\AblEscTnohistory{} for escalation. Removing the outcomes of earlier stays
+or the auxiliary outcome head reduced readmission AUROC by
+\AblReadmitTnoprioroutcomes{} and \AblReadmitTnoaux{}, but not escalation
+AUROC. The history-reliability gates and the delta encoding had effects
+within $\pm$0.001, i.e.\ within run-to-run variation. Contrary to our
+expectation, the knowledge-graph components did not help with the full
+training set: flat code embeddings changed AUROC by \AblReadmitTnokg{}
+(readmission) and \AblEscTnokg{} (escalation), and removing only the
+co-morbidity propagation gave \AblReadmitTnocooccurrence{} and
+\AblEscTnocooccurrence{}, i.e.\ the hierarchy-only variant was the best
+TKGN configuration on test data. Because this was observed after the design
+had been fixed on validation data, we report the pre-specified
+configuration as TKGN and treat the hierarchy-only variant as a finding to be
+confirmed in future work.
+
+\begin{table}[t]
+  \centering
+  \caption{Ablation of TKGN (mean$\pm$SD test AUROC over the first
+  \NAblRuns{} grouped repeats; $\Delta$ relative to the full model).}
+  \label{tab:ablation}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \input{tables/tab_ablation.tex}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig_ablation.pdf}
+  \caption{Change in test AUROC when one component of TKGN is removed
+  (mean$\pm$SD of paired differences over repeats). Green: the component
+  helps; red: the model is better without it.}
+  \label{fig:ablation}
+\end{figure}
+
+\input{sections/kg_efficiency.tex}
+
+\subsection{Data efficiency}
+Fig.~\ref{fig:learning} and Table~\ref{tab:learning} show performance when
+only part of the training patients is available. TKGN-B was at least as
+good as LightGBM at every training size for readmission, with the largest
+gains at small sizes (5\%: \LcReadmitFiveTKGNB{} versus
+\LcReadmitFiveLGBM{}; 25\%: \LcReadmitTwentyFiveTKGNB{} versus
+\LcReadmitTwentyFiveLGBM{}). For escalation, LightGBM was better with 5\% of
+the training patients (\LcEscFiveLGBM{} versus \LcEscFiveTKGNB{}) and
+TKGN-B was better from 10\% onwards (e.g.\ 50\%: \LcEscFiftyTKGNB{} versus
+\LcEscFiftyLGBM{}). These curves come from one repeat each and should be
+read as trends.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig_learning_curve.pdf}
+  \caption{Test AUROC as a function of the share of training patients
+  (first grouped repeat; same test patients at every size).}
+  \label{fig:learning}
+\end{figure}
+
+\begin{table}[t]
+  \centering
+  \caption{Learning curve: test AUROC by share of training patients.}
+  \label{tab:learning}
+  \scriptsize
+  \input{tables/tab_learning.tex}
+\end{table}
+
+\subsection{Patients with and without earlier stays}
+For readmission, discrimination was lower for patients with a longer
+history, whose baseline risk is higher and more homogeneous
+(Table~\ref{tab:subgroups}); for escalation it was higher
+(\SubEscZeroTKGNB{} for first stays versus \SubEscTwoTKGNB{} with two or
+more earlier stays). For readmission among patients with two or more earlier stays, TKGN-B reached
+an AUROC of \SubReadmitTwoTKGNB{}, compared with \SubReadmitTwoLGBM{} for
+LightGBM, and TKGN alone reached \SubReadmitTwoTKGN{}; the sequence
+information therefore contributes most where the tabular history summaries
+saturate. For first stays the two approaches were equivalent
+(\SubReadmitZeroTKGNB{} versus \SubReadmitZeroLGBM{}).
+
+The learned gates behaved differently for the two tasks
+(Fig.~\ref{fig:gates}). For escalation, the mean history gate increased with
+the number of earlier stays (\GateEscZero{} with none, \GateEscFive{} with
+five or more), i.e.\ the model relied more on longer histories. For
+readmission, the gate was lower for patients with history than the value
+it applied to the learned ``no history'' vector (\GateReadmitOne{} with one
+earlier stay, \GateReadmitZero{} with none), indicating that the network
+damped the history summary and relied on the index stay together with the
+outcome tokens of earlier stays.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.62\linewidth]{figures/fig_gates.pdf}
+  \caption{Mean activation of the history and delta gates by number of
+  earlier stays (first grouped test set).}
+  \label{fig:gates}
+\end{figure}
+
+\subsection{Explanations}
+Permutation importance (Fig.~\ref{fig:importance}) identified
+\TopGroupReadmit{} as the most important input group of TKGN for
+readmission (AUROC drop \TopGroupDropReadmit{}), followed by the sequence of
+earlier encounters and the admission and discharge context; for escalation
+the anti-diabetic medication profile dominated (drop
+\TopGroupDropEsc{}), again followed by earlier encounters. HbA1c and glucose
+results contributed almost nothing, consistent with the fact that they were
+measured in fewer than one in five stays. For the LightGBM anchor, TreeSHAP
+ranked the number of inpatient stays in the preceding year and discharge
+home as the strongest readmission predictors, and a steady insulin dose and
+the change in the number of prescribed diabetes drugs since the last stay as
+the strongest escalation predictors. These patterns agree with clinical
+knowledge on readmission after diabetes admissions \citep{rubin2015} and
+support the plausibility of the models.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig_importance.pdf}
+  \caption{Left: permutation importance of input groups for TKGN (mean AUROC
+  drop over three permutations). Right: mean absolute TreeSHAP value of the
+  LightGBM anchor of TKGN-B. First grouped test set.}
+  \label{fig:importance}
+\end{figure*}
+
+\subsection{Subgroups and fairness}
+Table~\ref{tab:subgroups} and Fig.~\ref{fig:subgroups} report subgroup
+performance. For readmission, the AUROC of TKGN-B differed by at most
+\GapReadmitRace{} between racial groups with at least 300 test encounters
+(African American \SubRaceReadmitAA{}, Caucasian \SubRaceReadmitCA{}), by
+\GapReadmitGender{} between women and men, and by \GapReadmitAge{} between
+age bands, with the lowest discrimination in patients aged 70 years or older.
+For escalation the corresponding gaps were \GapEscRace{}, \GapEscGender{} and
+\GapEscAge{}. Calibration within subgroups was acceptable (ECE at most
+\MaxSubEce{} in all groups with at least 300 encounters). Groups
+with fewer than 300 test encounters (Asian, $n=105$) give unstable
+estimates and are shown for completeness only.
+
+\begin{table}[t]
+  \centering
+  \caption{Test AUROC by subgroup (first grouped repeat).}
+  \label{tab:subgroups}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \input{tables/tab_subgroups.tex}
+\end{table}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig_subgroups.pdf}
+  \caption{30-day readmission AUROC by race, sex, age band and number of
+  earlier stays.}
+  \label{fig:subgroups}
+\end{figure*}

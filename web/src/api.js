@@ -20,6 +20,7 @@ export const getSummary = () => request("/summary");
 export const getSignificance = () => request("/significance");
 export const getRepeatTests = () => request("/repeat-tests");
 export const getAblation = () => request("/ablation");
+export const getKgEfficiency = () => request("/kg-efficiency");
 export const getSubgroups = () => request("/subgroups");
 export const getCalibration = () => request("/calibration");
 export const getLearningCurve = () => request("/learning-curve");

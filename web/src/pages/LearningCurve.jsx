@@ -38,8 +38,9 @@ export default function LearningCurve() {
         <h2 className="page-title">Data efficiency</h2>
         <p className="page-sub">
           Models retrained on random subsets of training patients (same test
-          patients). Knowledge-graph code sharing is expected to matter most
-          when data are scarce.
+          patients). One repeat per training size, so small differences should
+          be read as trends. The knowledge-graph comparison under data
+          scarcity is shown on the Ablation page.
         </p>
       </div>
       <div className="toolbar">

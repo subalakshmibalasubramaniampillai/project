@@ -1,0 +1,42 @@
+\textbf{Objective:} To predict 30-day readmission and escalation of
+glucose-lowering treatment at the next hospital stay from real-world
+longitudinal inpatient records of people with diabetes, and to test whether
+knowledge-aware sequence models add value over strong gradient boosting under
+rigorous validation.
+
+\textbf{Methods:} We used the public Diabetes 130-US Hospitals database
+(\NEnc{} encounters of \NPat{} patients after exclusions; \NRepeat{} patients
+with repeat stays). We propose the Temporal Knowledge-Gated Network (TKGN),
+which encodes each stay with a hybrid knowledge graph (ICD-9-CM hierarchy,
+drug classes and a training-only co-morbidity graph), summarises earlier
+stays and fuses them with the current stay through history-reliability
+gates, and TKGN-B, which trains TKGN as a residual on an out-of-fold
+LightGBM logit. Ten models, including tuned logistic regression, random
+forest, XGBoost, LightGBM, GRU, RETAIN and Transformer baselines, were
+compared on five patient-disjoint splits and a prospective temporal split,
+with patient-clustered bootstrap confidence intervals, DeLong tests,
+calibration, ablation, learning-curve, explanation and subgroup analyses.
+
+\textbf{Results:} Readmission and escalation prevalence were
+\RateReadmit\% and \RateEsc\%. TKGN-B achieved the highest mean AUROC for
+readmission (\AucReadmitGrpTKGNB{} versus \AucReadmitGrpLGBM{} for LightGBM)
+and escalation (\AucEscGrpTKGNB{} versus \AucEscGrpLGBM{}), outperforming
+LightGBM in \WinsReadmitLGBM{} and \WinsEscLGBM{} repeats, with good
+calibration (ECE \EceReadmitGrpTKGNB{} and \EceEscGrpTKGNB{}). It was
+significantly better than all deep sequence baselines for readmission and
+the best model on the temporal escalation split (\AucEscTmpTKGNB{} versus
+\AucEscTmpLGBM{}, $p$ \PDelongTmpEscLGBM{}); differences to gradient boosting on
+patient-disjoint splits were small and not statistically significant, and a
+random forest was most robust on the temporal readmission split.
+Earlier stays were the most valuable model input, whereas knowledge-graph
+code sharing did not improve discrimination at full data size.
+Test AUROC differed by at most \GapReadmitRace{} across adequately sized
+racial groups and \GapReadmitGender{} between sexes, and most across age
+bands (\GapReadmitAge{}).
+
+\textbf{Conclusion:} Anchoring a knowledge-gated sequence model on gradient
+boosting yields calibrated risk estimates that are at least as accurate as
+the strongest tabular learners and clearly better than standard deep sequence
+models on real diabetes inpatient data. Gains over boosting are modest,
+underscoring the need for patient-disjoint and temporal validation when new
+architectures are proposed.

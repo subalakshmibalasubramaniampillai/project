@@ -1,0 +1,128 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Principal findings}
+On more than 99{,}000 real inpatient encounters, a boosting-anchored
+knowledge-gated sequence model (TKGN-B) was the best or joint-best model for
+both 30-day readmission and next-stay treatment escalation under
+patient-disjoint validation, was clearly and significantly better than
+three established deep sequence architectures, and was the best model on the
+prospective temporal split for treatment escalation. Its advantage over
+carefully tuned gradient boosting was, however, small (about 0.002 AUROC on
+average) and not statistically significant on a single test set, and on the
+temporal readmission split a random forest was more robust than every other
+model. The most important ingredient of the sequence model was access to
+the patient's earlier encounters (and, for readmission, their outcomes); the
+knowledge-graph
+components did not improve discrimination when the full training set was
+used.
+
+\subsection{Interpretation}
+\paragraph{Why anchoring helps}
+The tabular learners already receive hand-crafted history aggregates, so
+the remaining signal that a sequence model can add is limited. Training the
+network on the residual of an out-of-fold boosting model concentrates its
+capacity on this remaining signal: the order and content of earlier stays,
+changes between stays, and patients whose history is long enough to
+saturate simple counts (Table~\ref{tab:subgroups}). The same residual
+network trained on its own (TKGN) could not match boosting, which agrees
+with the broader observation that neural networks struggle to beat trees on
+heterogeneous tabular data \citep{grinsztajn2022}. Combining both
+through an additive logit, rather than choosing between them, is a simple
+way to keep the strengths of each; the out-of-fold construction is
+essential, because in-sample boosting logits on the training set are
+optimistically sharp and would leave the network nothing to learn.
+
+\paragraph{The role of clinical knowledge}
+Ontology-based code representations were originally motivated by rare codes
+and small datasets \citep{choi2017gram}. In this cohort, most diagnosis
+codes are stored at the three-character level, and the frequent codes that
+carry most of the signal have hundreds to thousands of training examples,
+which leaves little room for hierarchical smoothing. The empirical
+co-morbidity propagation even reduced performance slightly, possibly because
+PPMI emphasises strongly associated but rare pairs (for example
+pregnancy-related categories) that are not predictive of the outcomes
+studied here. The dedicated data-efficiency experiment
+(Section~\ref{sec:kgeff}) quantifies whether the graph helps when training
+data are scarce. We think the hierarchy is more likely to matter in
+settings with full-length ICD codes, smaller institutions or transfer
+between sites, and we report the negative result to discourage
+over-claiming of knowledge-graph benefits on this benchmark.
+
+\paragraph{History-reliability gates}
+The gates did not change discrimination in the ablation, but they made the
+model's use of history inspectable. For escalation they opened steadily with
+the length of the history, which matches the intuition that a longer
+medication trajectory is more informative for the next treatment decision.
+For readmission they damped the history summary while the explicit outcome
+tokens of earlier stays remained important, suggesting that ``what happened
+after the last discharge'' is more useful than a compressed summary of
+earlier stays.
+
+\paragraph{Temporal robustness}
+The temporal split revealed shifts in recording practice (more diagnoses per
+stay) and in the population (longer histories, more emergency visits) that
+are typical of real hospital data. Such shifts are invisible to random
+splits and strongly penalised models that extrapolate linearly. They also
+explain why model rankings differed between designs. Any deployment of
+these models would need local recalibration and monitoring of feature
+distributions over time \citep{vancalster2019}.
+
+\paragraph{Fairness}
+Discrimination was similar for women and men and for the two largest racial
+groups, and calibration was acceptable in all adequately sized subgroups.
+The larger gap across age bands, with the weakest performance in the oldest
+patients, mirrors the higher and more homogeneous baseline risk of this
+group and deserves attention because older adults are a key target
+population for transitional-care programmes. Because the race variable is
+coarse and partly missing, these results do not rule out inequities for
+smaller groups \citep{obermeyer2019}.
+
+\subsection{Comparison with previous work}
+The discrimination reached for 30-day readmission (AUROC around 0.69) lies
+at the upper end of the range typically reported for readmission models
+\citep{kansagara2011}. Direct comparison with earlier analyses of the same
+database is difficult because many use encounter-level random splits, which
+allow repeat stays of a patient to appear in training and test data, or
+restrict the cohort to one encounter per patient. We deliberately used
+patient-disjoint and temporal validation, multiple repeats and validation-only
+tuning, which give more conservative but more trustworthy estimates.
+Treatment escalation at the next hospital stay has, to our knowledge, not
+been used as a prediction target on this database; it links the readmission
+literature with work on clinical inertia in type 2 diabetes
+\citep{khunti2013}.
+
+\subsection{Limitations}
+This study has several limitations. First, only one public data source was
+available; although the temporal split mimics prospective use,
+external validation in an independent health system is needed. Second, the
+release has no calendar dates, so stays were ordered by encounter identifier
+and the time between stays is unknown; time-aware models could exploit
+this information where it exists. Third, only three diagnoses per stay are
+recorded and most codes are truncated to three characters, which limits the
+potential of ontology-based representations. Fourth, readmissions are only
+observed within the participating systems, so some outcomes may be missed.
+Fifth, treatment escalation is defined from prescription states at the next
+inpatient stay and is therefore a proxy for glycaemic deterioration rather
+than a direct measure of it; it is only defined for patients who return to
+hospital. Sixth, the learning curves are based on a single repeat per
+training size, and the differences between the best models are small
+relative to their variability; claims of superiority over gradient boosting
+should therefore be made with caution. Seventh, the neural architectures
+were developed on a separate partition of the same cohort, so a small
+optimistic bias from design choices cannot be excluded; the tabular
+baselines were tuned only on the validation partitions of the evaluation
+runs. Finally, the models are research
+prototypes and have not been evaluated for clinical utility.
+
+\subsection{Conclusions}
+Using real, publicly available diabetes inpatient records and a
+leakage-controlled protocol, we showed that anchoring a knowledge-gated
+sequence model on out-of-fold gradient boosting yields a model that is
+consistently at least as good as the strongest tabular learners, clearly
+better than standard deep sequence models, and well calibrated, for both
+30-day readmission and next-stay treatment escalation. Most of the gain from
+sequence modelling comes from the patient's earlier stays, whereas knowledge-graph code sharing did not improve
+discrimination at full data size. All code, derived results and an
+interactive dashboard are released to support replication and extension to
+other cohorts.

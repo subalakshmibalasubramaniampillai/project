@@ -14,6 +14,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.ticker  # noqa: E402
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -107,31 +108,32 @@ def fig_framework():
 
 def fig_cohort():
     d = _load("dataset_summary.json")
-    fig, ax = plt.subplots(figsize=(3.5, 3.4))
-    ax.set_xlim(0, 10)
+    fig, ax = plt.subplots(figsize=(5.0, 3.6))
+    ax.set_xlim(0, 14)
     ax.set_ylim(0, 10)
     ax.axis("off")
-    items = [
-        (8.6, f"UCI Diabetes 130-US Hospitals\n{d['raw_encounters']:,} encounters"),
-        (6.2, f"Study cohort\n{d['cohort_encounters']:,} encounters, {d['patients']:,} patients\n"
-              f"({d['patients_with_repeat_encounters']:,} with repeat stays)"),
-    ]
-    for y, text in items:
-        ax.add_patch(FancyBboxPatch((1, y - 0.9), 8, 1.8, boxstyle="round,pad=0.1",
-                                    fc="#eef2fa", ec="#3d4b66", lw=0.8))
-        ax.text(5, y, text, ha="center", va="center", fontsize=7.5)
-    ax.annotate("", (5, 7.1), (5, 7.7), arrowprops=dict(arrowstyle="-|>", lw=0.8))
+
+    def box(x, y, w, h, text, fc, ec, size=7.2):
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.1",
+                                    fc=fc, ec=ec, lw=0.8))
+        ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=size)
+
+    box(2.5, 8.2, 9, 1.4, f"UCI Diabetes 130-US Hospitals (1999-2008)\n"
+        f"{d['raw_encounters']:,} inpatient encounters", "#eef2fa", "#3d4b66")
+    box(2.5, 4.9, 9, 1.9, f"Study cohort\n{d['cohort_encounters']:,} encounters of "
+        f"{d['patients']:,} patients\n{d['patients_with_repeat_encounters']:,} patients "
+        f"with repeat stays", "#eef2fa", "#3d4b66")
+    ax.annotate("", (7, 6.9), (7, 8.1), arrowprops=dict(arrowstyle="-|>", lw=0.8))
     excluded = d["raw_encounters"] - d["cohort_encounters"]
-    ax.text(5.3, 7.4, f"excluded {excluded:,}: death/hospice\ndischarge, unknown sex",
-            fontsize=6.5, va="center")
-    for x, text in [(0.6, f"Task 1: 30-day readmission\nall {d['cohort_encounters']:,} stays\n"
+    ax.text(7.25, 7.5, f"excluded {excluded:,}: death or hospice discharge,\n"
+            "unknown sex", fontsize=6.3, va="center")
+    for x, text in [(0.3, f"Task 1: 30-day readmission\nall {d['cohort_encounters']:,} stays\n"
                           f"positive {100 * d['readmit30_rate']:.1f}%"),
-                    (5.2, f"Task 2: escalation at next stay\n{d['escalation_samples']:,} stays with a\n"
-                          f"later stay; positive {100 * d['escalation_rate']:.1f}%")]:
-        ax.add_patch(FancyBboxPatch((x, 1.4), 4.2, 2.4, boxstyle="round,pad=0.1",
-                                    fc="#fff4e3", ec="#e08a1e", lw=0.8))
-        ax.text(x + 2.1, 2.6, text, ha="center", va="center", fontsize=6.8)
-        ax.annotate("", (x + 2.1, 3.9), (5, 5.2), arrowprops=dict(arrowstyle="-|>", lw=0.8))
+                    (7.3, f"Task 2: treatment escalation\nat next stay\n"
+                          f"{d['escalation_samples']:,} stays with a later stay\n"
+                          f"positive {100 * d['escalation_rate']:.1f}%")]:
+        box(x, 0.6, 6.4, 2.6, text, "#fff4e3", "#e08a1e", size=6.8)
+        ax.annotate("", (x + 3.2, 3.3), (7, 4.8), arrowprops=dict(arrowstyle="-|>", lw=0.8))
     _save(fig, "fig_cohort")
 
 
@@ -151,11 +153,16 @@ def fig_auroc():
         ax.set_xticks(range(len(MAIN)))
         ax.set_xticklabels([LABELS[m] for m in MAIN], rotation=45, ha="right")
         ax.set_title(TASK_NAMES[task])
-        lo = min(r["auroc"] for r in rows if r["task"] == task and r["model"] in MAIN)
-        hi = max(r["auroc"] for r in rows if r["task"] == task and r["model"] in MAIN)
-        ax.set_ylim(lo - 0.02, hi + 0.012)
+        sel = [r for r in rows if r["task"] == task and r["model"] in MAIN]
+        lo = min(r["auroc"] - r["auroc_sd"] for r in sel)
+        hi = max(r["auroc"] + r["auroc_sd"] for r in sel)
+        ax.set_ylim(lo - 0.01, hi + 0.006)
         ax.set_ylabel("Test AUROC")
-    axes[0].legend(loc="lower right", frameon=False)
+    from matplotlib.patches import Patch
+    fig.legend(handles=[Patch(facecolor="#9aa3b5", label="patient-grouped (5 repeats)"),
+                        Patch(facecolor="#9aa3b5", hatch="///", edgecolor="white",
+                              label="temporal (3 seeds)")],
+               loc="upper center", ncol=2, frameon=False, bbox_to_anchor=(0.5, 1.06))
     _save(fig, "fig_auroc")
 
 
@@ -208,8 +215,10 @@ def fig_ablation():
     for ax, task in zip(axes, ["readmit30", "escalation"]):
         sub = {r["label"]: r for r in rows if r["task"] == task}
         vals = [sub[l]["delta_auroc_vs_full"] if l in sub else 0 for l in order]
-        ax.barh(range(len(order)), vals,
+        errs = [sub[l].get("delta_sd", 0) if l in sub else 0 for l in order]
+        ax.barh(range(len(order)), vals, xerr=errs, capsize=2,
                 color=["#1f9e74" if v < 0 else "#c9483f" for v in vals])
+        ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(4))
         ax.axvline(0, color="black", lw=0.6)
         ax.set_yticks(range(len(order)))
         ax.set_yticklabels([l.replace("TKGN - ", "without ") for l in order])
@@ -220,7 +229,7 @@ def fig_ablation():
 
 def fig_gates():
     rows = _load("gates.json")
-    fig, ax = plt.subplots(figsize=(3.4, 2.4))
+    fig, ax = plt.subplots(figsize=(3.4, 2.6))
     for task, ls in [("readmit30", "-"), ("escalation", "--")]:
         sub = [r for r in rows if r["task"] == task]
         xs = [r["prior_encounters"] for r in sub]
@@ -230,7 +239,8 @@ def fig_gates():
                 color="#2f8f8b", label=f"delta gate, {TASK_NAMES[task]}")
     ax.set_xlabel("Earlier stays of the patient")
     ax.set_ylabel("Mean gate activation")
-    ax.legend(frameon=False, fontsize=6)
+    ax.legend(frameon=False, fontsize=6, ncol=2, loc="upper center",
+              bbox_to_anchor=(0.5, -0.22))
     _save(fig, "fig_gates")
 
 
@@ -271,9 +281,13 @@ def fig_subgroups():
         ax.set_xticks(range(len(groups)))
         ax.set_xticklabels(groups, rotation=40, ha="right", fontsize=6.5)
         ax.set_title(attr.replace("_", " "))
-        ax.set_ylim(0.55, 0.78)
+    vals = [r["auroc"] for r in rows if r["task"] == "readmit30" and r["attribute"] in attrs
+            and r["model"] in ("lightgbm", "tkgn", "tkgn_b")]
+    axes[0].set_ylim(min(vals) - 0.03, max(vals) + 0.01)
     axes[0].set_ylabel("AUROC (30-day readmission)")
-    axes[0].legend(frameon=False, fontsize=6)
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper center", ncol=3, frameon=False,
+               bbox_to_anchor=(0.5, 1.08))
     _save(fig, "fig_subgroups")
 
 
