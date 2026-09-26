@@ -156,8 +156,10 @@ def _subgroups(runs, cohort):
             "age": sub["age"].map(_age_band).to_numpy(),
             "prior_encounters": np.where(sub["order"] == 0, "0",
                                          np.where(sub["order"] == 1, "1", "2+")),
-            "hba1c_measured": np.where(sub["A1Cresult"].isna(), "not measured",
-                                       "measured"),
+            # the release records "None" when HbA1c was not measured
+            "hba1c_measured": np.where(sub["A1Cresult"].isin(["None"])
+                                       | sub["A1Cresult"].isna(),
+                                       "not measured", "measured"),
         }
         for model in ["logistic_regression", "lightgbm", "gru", "tkgn", "tkgn_b"]:
             if f"p_{model}" not in data.files:

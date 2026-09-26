@@ -29,6 +29,8 @@ DEFAULTS = {
     **{c: np.nan for c in DIAG_COLUMNS},
     **{d: "No" for d in DRUG_COLUMNS},
     "readmitted": "NO", "change": "No", "diabetesMed": "No",
+    # the release encodes "test not performed" as the string "None"
+    "A1Cresult": "None", "max_glu_serum": "None",
     "gender": "Female", "age": "[60-70)", "race": "Caucasian",
     "admission_type_id": 1, "discharge_disposition_id": 1,
     "admission_source_id": 7, "number_diagnoses": 1, "time_in_hospital": 1,

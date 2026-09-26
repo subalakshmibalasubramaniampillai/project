@@ -103,7 +103,7 @@ export default function PatientExplorer() {
                       <td className="num">{e.num_medications}</td>
                       <td className="num">{e.number_inpatient}</td>
                       <td>{e.diag_1 ?? "—"}</td><td>{e.diag_2 ?? "—"}</td><td>{e.diag_3 ?? "—"}</td>
-                      <td>{e.A1Cresult ?? "not measured"}</td><td>{e.insulin}</td>
+                      <td>{!e.A1Cresult || e.A1Cresult === "None" ? "not measured" : e.A1Cresult}</td><td>{e.insulin}</td>
                       <td>{e.readmitted}</td>
                       <td className="num">{fmt(e.p_tkgn_b)}</td>
                       <td className="num">{fmt(e.gate_history)}</td>

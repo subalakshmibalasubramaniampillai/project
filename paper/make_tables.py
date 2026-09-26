@@ -63,7 +63,8 @@ def cohort_table():
     young = [a for a in ages if int(a.strip("[)").split("-")[0]) < 50]
     mid = [a for a in ages if 50 <= int(a.strip("[)").split("-")[0]) < 70]
     old = [a for a in ages if int(a.strip("[)").split("-")[0]) >= 70]
-    a1c_measured = 100 - d["a1c"].get("Unknown", 0) / n * 100
+    # "None" in the release means the test was not performed
+    a1c_measured = 100 - (d["a1c"].get("None", 0) + d["a1c"].get("Unknown", 0)) / n * 100
     rows = [
         ("Inpatient encounters", f"{n:,}"),
         ("Unique patients", f"{d['patients']:,}"),
