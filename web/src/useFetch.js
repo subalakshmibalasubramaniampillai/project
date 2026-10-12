@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { get } from "./api";
 
-// Fetch one or more API paths; returns { data, error, loading }.
-// `data` is keyed by the names given in `paths`.
 const cache = new Map();
 
 export function useApi(paths) {
@@ -30,7 +28,6 @@ export function useApi(paths) {
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   return state;
