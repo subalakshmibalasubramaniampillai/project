@@ -1,0 +1,350 @@
+{
+  "n_nodes": 674,
+  "n_codes": 912,
+  "nodes_by_level": {
+    "chapter": 19,
+    "category": 620,
+    "subcategory": 10,
+    "code": 24
+  },
+  "n_cooccurrence_edges": 541,
+  "top_cooccurrence": [
+    {
+      "a": "642",
+      "b": "648",
+      "ppmi": 4.982,
+      "count": 69
+    },
+    {
+      "a": "648",
+      "b": "654",
+      "ppmi": 4.961,
+      "count": 75
+    },
+    {
+      "a": "591",
+      "b": "592",
+      "ppmi": 4.577,
+      "count": 121
+    },
+    {
+      "a": "291",
+      "b": "303",
+      "ppmi": 4.47,
+      "count": 64
+    },
+    {
+      "a": "730",
+      "b": "731",
+      "ppmi": 4.363,
+      "count": 75
+    },
+    {
+      "a": "571",
+      "b": "572",
+      "ppmi": 4.033,
+      "count": 134
+    },
+    {
+      "a": "294",
+      "b": "331",
+      "ppmi": 4.019,
+      "count": 112
+    },
+    {
+      "a": "V54",
+      "b": "V57",
+      "ppmi": 3.904,
+      "count": 76
+    },
+    {
+      "a": "296",
+      "b": "301",
+      "ppmi": 3.897,
+      "count": 66
+    },
+    {
+      "a": "820",
+      "b": "E885",
+      "ppmi": 3.606,
+      "count": 66
+    },
+    {
+      "a": "38",
+      "b": "995",
+      "ppmi": 3.598,
+      "count": 251
+    },
+    {
+      "a": "342",
+      "b": "434",
+      "ppmi": 3.514,
+      "count": 190
+    },
+    {
+      "a": "415",
+      "b": "453",
+      "ppmi": 3.486,
+      "count": 125
+    },
+    {
+      "a": "V43",
+      "b": "V57",
+      "ppmi": 3.4,
+      "count": 85
+    },
+    {
+      "a": "820",
+      "b": "E888",
+      "ppmi": 3.385,
+      "count": 56
+    },
+    {
+      "a": "162",
+      "b": "198",
+      "ppmi": 3.349,
+      "count": 111
+    },
+    {
+      "a": "197",
+      "b": "198",
+      "ppmi": 3.241,
+      "count": 100
+    },
+    {
+      "a": "820",
+      "b": "E849",
+      "ppmi": 3.178,
+      "count": 53
+    },
+    {
+      "a": "153",
+      "b": "197",
+      "ppmi": 3.086,
+      "count": 58
+    },
+    {
+      "a": "996",
+      "b": "E878",
+      "ppmi": 2.99,
+      "count": 104
+    },
+    {
+      "a": "438",
+      "b": "V57",
+      "ppmi": 2.887,
+      "count": 90
+    },
+    {
+      "a": "571",
+      "b": "70",
+      "ppmi": 2.855,
+      "count": 68
+    },
+    {
+      "a": "162",
+      "b": "197",
+      "ppmi": 2.838,
+      "count": 85
+    },
+    {
+      "a": "998",
+      "b": "E878",
+      "ppmi": 2.811,
+      "count": 52
+    },
+    {
+      "a": "303",
+      "b": "571",
+      "ppmi": 2.767,
+      "count": 58
+    },
+    {
+      "a": "562",
+      "b": "569",
+      "ppmi": 2.614,
+      "count": 70
+    },
+    {
+      "a": "296",
+      "b": "300",
+      "ppmi": 2.576,
+      "count": 52
+    },
+    {
+      "a": "41",
+      "b": "590",
+      "ppmi": 2.565,
+      "count": 52
+    },
+    {
+      "a": "574",
+      "b": "577",
+      "ppmi": 2.558,
+      "count": 180
+    },
+    {
+      "a": "434",
+      "b": "784",
+      "ppmi": 2.535,
+      "count": 104
+    },
+    {
+      "a": "280",
+      "b": "578",
+      "ppmi": 2.52,
+      "count": 144
+    },
+    {
+      "a": "571",
+      "b": "789",
+      "ppmi": 2.5,
+      "count": 92
+    },
+    {
+      "a": "296",
+      "b": "303",
+      "ppmi": 2.408,
+      "count": 54
+    },
+    {
+      "a": "722",
+      "b": "724",
+      "ppmi": 2.402,
+      "count": 50
+    },
+    {
+      "a": "459",
+      "b": "682",
+      "ppmi": 2.36,
+      "count": 78
+    },
+    {
+      "a": "285",
+      "b": "532",
+      "ppmi": 2.353,
+      "count": 62
+    },
+    {
+      "a": "715",
+      "b": "V43",
+      "ppmi": 2.157,
+      "count": 50
+    },
+    {
+      "a": "560",
+      "b": "997",
+      "ppmi": 2.142,
+      "count": 92
+    },
+    {
+      "a": "707",
+      "b": "730",
+      "ppmi": 2.142,
+      "count": 134
+    },
+    {
+      "a": "285",
+      "b": "531",
+      "ppmi": 2.056,
+      "count": 63
+    }
+  ],
+  "chapters": [
+    {
+      "id": "C01",
+      "name": "Infectious and parasitic diseases",
+      "count": 4209
+    },
+    {
+      "id": "C02",
+      "name": "Neoplasms",
+      "count": 3933
+    },
+    {
+      "id": "C03",
+      "name": "Endocrine, nutritional, metabolic and immunity",
+      "count": 34490
+    },
+    {
+      "id": "C04",
+      "name": "Diseases of the blood",
+      "count": 4427
+    },
+    {
+      "id": "C05",
+      "name": "Mental disorders",
+      "count": 4661
+    },
+    {
+      "id": "C06",
+      "name": "Nervous system and sense organs",
+      "count": 2782
+    },
+    {
+      "id": "C07",
+      "name": "Circulatory system",
+      "count": 40015
+    },
+    {
+      "id": "C08",
+      "name": "Respiratory system",
+      "count": 15138
+    },
+    {
+      "id": "C09",
+      "name": "Digestive system",
+      "count": 9393
+    },
+    {
+      "id": "C10",
+      "name": "Genitourinary system",
+      "count": 11777
+    },
+    {
+      "id": "C11",
+      "name": "Pregnancy and childbirth",
+      "count": 485
+    },
+    {
+      "id": "C12",
+      "name": "Skin and subcutaneous tissue",
+      "count": 5078
+    },
+    {
+      "id": "C13",
+      "name": "Musculoskeletal and connective tissue",
+      "count": 5206
+    },
+    {
+      "id": "C14",
+      "name": "Congenital anomalies",
+      "count": 185
+    },
+    {
+      "id": "C15",
+      "name": "Perinatal conditions",
+      "count": 0
+    },
+    {
+      "id": "C16",
+      "name": "Symptoms, signs and ill-defined conditions",
+      "count": 10754
+    },
+    {
+      "id": "C17",
+      "name": "Injury and poisoning",
+      "count": 6884
+    },
+    {
+      "id": "CE",
+      "name": "Supplementary: external causes of injury",
+      "count": 1292
+    },
+    {
+      "id": "CV",
+      "name": "Supplementary: factors influencing health status",
+      "count": 4658
+    }
+  ]
+}

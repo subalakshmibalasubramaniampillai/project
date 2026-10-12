@@ -1,0 +1,22 @@
+{
+  "train": {
+    "n": 69538,
+    "number_diagnoses_mean": 7.124090425378929,
+    "number_diagnoses_max": 9,
+    "share_with_history": 0.26149731082285943,
+    "max_prior_stays": 22,
+    "number_emergency_mean": 0.15774109120193275,
+    "readmit30_rate": 0.11570652017601887,
+    "a1c_measured": 0.1618251891052374
+  },
+  "test": {
+    "n": 19868,
+    "number_diagnoses_mean": 8.095429836923696,
+    "number_diagnoses_max": 16,
+    "share_with_history": 0.37245822428024966,
+    "max_prior_stays": 39,
+    "number_emergency_mean": 0.29791624723172944,
+    "readmit30_rate": 0.10866720354338635,
+    "a1c_measured": 0.18054157439098048
+  }
+}

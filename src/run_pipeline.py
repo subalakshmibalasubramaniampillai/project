@@ -1,409 +1,288 @@
 """
-Main pipeline entry point.
+End-to-end experiment runner on the real Diabetes 130-US Hospitals data.
 
-Orchestrates: data loading → feature engineering → graph construction →
-model training → evaluation → artifact saving.
+    python -m src.run_pipeline                 # full protocol
+    python -m src.run_pipeline --quick         # small smoke run
 
-Supports three data paths:
-  1. Synthetic cohort (default when no data provided)
-  2. Real public dataset (Pima Indians)
-  3. User-provided CSV (via --input or DATA_SOURCE env)
+Protocol
+    tasks      : readmit30, escalation
+    splits     : patient-grouped 70/10/20 (``--repeats`` different random
+                 partitions) and a prospective temporal split
+                 (``--temporal-seeds`` model seeds)
+    models     : logistic regression, random forest, XGBoost, LightGBM,
+                 MLP, GRU, RETAIN, Transformer, TKGN (proposed) and
+                 TKGN-B (proposed, GBDT-anchored)
+    ablations  : TKGN component removals on the first ``--ablation-repeats``
+                 grouped repeats
+    extra      : learning curve over training-set fractions
+
+Every job writes ``outputs/runs/<job>.json`` (metrics) and ``.npz`` (test
+predictions).  Completed jobs are skipped, so the runner can resume.
+``aggregate()`` then builds the summary files served by the API.
 """
+from __future__ import annotations
+
+import argparse
 import json
+import os
+import time
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
-import torch
-from sklearn.preprocessing import StandardScaler
-from .data_source import load_dataset, prepare_dataset
-from .generate_data import generate_dataset
-from .knowledge_graph import build_knowledge_graph
-from .metrics import save_json
-from .models import (
-    make_patient_features, patient_split, run_baselines, run_graph_model,
-)
-from .novel import (
-    ConfidenceCalibratedFusion, MHFIN, PatientTrajectoryClusterer, TAGNN,
-)
+
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "outputs"
+RUNS = OUT / "runs"
+MODELS_DIR = OUT / "models"
+
+CLASSICAL = ["logistic_regression", "random_forest", "xgboost", "lightgbm",
+             "mlp"]
+SEQUENCE = ["gru", "retain", "transformer", "tkgn"]
+PROPOSED = ["tkgn", "tkgn_b"]
+ABLATIONS = ["tkgn_no_kg", "tkgn_no_cooccurrence", "tkgn_no_history",
+             "tkgn_no_gate", "tkgn_no_delta", "tkgn_no_prior_outcomes",
+             "tkgn_no_aux"]
+MAX_HISTORY = 10
+
+# one optimisation recipe for every neural model; TKGN additionally uses
+# the auxiliary outcome head (removed in the ``tkgn_no_aux`` ablation)
+NEURAL_HP = {"lr": 5e-4, "weight_decay": 1e-3, "max_epochs": 30,
+             "patience": 4, "batch_size": 512}
+DROPOUT = 0.3
+AUX_WEIGHT = 0.5
+
+_CACHE: dict = {}
 
 
-def _train_tagnn(features, train_ids, test_ids, columns, seed=42):
-    """Train the novel TAGNN model and return metrics + artifact."""
-    from .novel import TAGNN
-    torch.manual_seed(seed)
-
-    scaler = StandardScaler().fit(features.loc[train_ids, columns])
-    x_np = scaler.transform(features[columns])
-    ids = list(features.index)
-    index = {pid: i for i, pid in enumerate(ids)}
-
-    from .models import build_graph_edges
-    edge_index, edge_weight = build_graph_edges(features, knowledge=True)
-
-    x = torch.tensor(x_np, dtype=torch.float32)
-    y = torch.tensor(features.target.to_numpy(), dtype=torch.float32)
-    train_set = set(train_ids)
-    train_mask = torch.tensor([pid in train_set for pid in ids])
-
-    model = TAGNN(x.shape[1], hid_dim=32, n_layers=2)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.008, weight_decay=1e-4)
-
-    for _ in range(200):
-        optimizer.zero_grad()
-        logits = model(x, edge_index, edge_weight)
-        loss = torch.nn.functional.binary_cross_entropy_with_logits(
-            logits[train_mask], y[train_mask]
-        )
-        loss.backward()
-        optimizer.step()
-
-    with torch.no_grad():
-        probs = torch.sigmoid(model(x, edge_index, edge_weight)).numpy()
-
-    test_idx = [index[pid] for pid in test_ids]
-    from .metrics import calculate_metrics
-    result = calculate_metrics(
-        features.target.iloc[test_idx].to_numpy(),
-        probs[test_idx],
-        "tagnn",
-    )
-    result["example_patient"] = test_ids[0]
-    result["example_probability"] = float(probs[test_idx[0]])
-    return result, (model, scaler, columns, edge_index, edge_weight)
+def _cohort():
+    if "cohort" not in _CACHE:
+        from .data import build_cohort, history_index
+        cohort = build_cohort()
+        _CACHE["cohort"] = cohort
+        _CACHE["history"] = history_index(cohort, MAX_HISTORY)
+    return _CACHE["cohort"], _CACHE["history"]
 
 
-def _train_mhfin(features, train_ids, test_ids, columns, seed=42):
-    """Train the Multi-Head Feature Interaction Network."""
-    from .novel import MHFINClassifier
-    torch.manual_seed(seed)
-
-    scaler = StandardScaler().fit(features.loc[train_ids, columns])
-    train_x = torch.tensor(
-        scaler.transform(features.loc[train_ids, columns]),
-        dtype=torch.float32,
-    )
-    test_x = torch.tensor(
-        scaler.transform(features.loc[test_ids, columns]),
-        dtype=torch.float32,
-    )
-    y_train = torch.tensor(
-        features.loc[train_ids, "target"].to_numpy(), dtype=torch.float32
-    )
-    y_test = features.loc[test_ids, "target"].to_numpy()
-
-    model = MHFINClassifier(len(columns), n_heads=4, proj_dim=6, hidden=24)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.008, weight_decay=1e-4)
-
-    for _ in range(150):
-        optimizer.zero_grad()
-        logits = model(train_x)
-        loss = torch.nn.functional.binary_cross_entropy_with_logits(
-            logits, y_train
-        )
-        loss.backward()
-        optimizer.step()
-
-    with torch.no_grad():
-        probs = torch.sigmoid(model(test_x)).numpy()
-
-    from .metrics import calculate_metrics
-    result = calculate_metrics(y_test, probs, "mhfin")
-    return result, model
+def _logit(p):
+    p = np.clip(p, 1e-6, 1 - 1e-6)
+    return np.log(p / (1 - p))
 
 
-def _run_ccf(base_probs_train, base_probs_test, y_train, y_test):
-    """Run Confidence-Calibrated Fusion on stacked base model outputs."""
-    from .novel import ConfidenceCalibratedFusion
-    ccf = ConfidenceCalibratedFusion(n_splits=3)
-    ccf.fit(base_probs_train, y_train)
-    calibrated = ccf.predict_proba(base_probs_test)
-    from .metrics import calculate_metrics
-    result = calculate_metrics(y_test, calibrated, "ccf_fusion")
-    result["model_weights"] = ccf.get_model_weights()
-    return result
+def _split(cohort, task, kind, repeat):
+    from .data import grouped_split, temporal_split
+    if kind == "grouped":
+        return grouped_split(cohort, task, seed=1000 + repeat)
+    return temporal_split(cohort, task)
 
 
-def run(source: str | None = None, data=None, use_real_data: bool = False):
-    """
-    Full pipeline execution.
+def _oof_gbdt_offset(cohort, x, y, split, params, n_iter, seed, folds=5):
+    """Out-of-fold LightGBM logits on train; full-train logits elsewhere."""
+    import lightgbm as lgb
+    train = split["train"]
+    pids = cohort["patient_nbr"].to_numpy()[train]
+    unique = np.unique(pids)
+    rng = np.random.default_rng(seed)
+    fold_of = dict(zip(unique, rng.integers(0, folds, len(unique))))
+    fold = np.array([fold_of[p] for p in pids])
+    offset = np.zeros(len(cohort), dtype=np.float32)
+    for k in range(folds):
+        model = lgb.LGBMClassifier(
+            n_estimators=n_iter, learning_rate=0.03, subsample=0.8,
+            subsample_freq=1, colsample_bytree=0.6, n_jobs=2,
+            random_state=seed, verbose=-1, **params)
+        model.fit(x[train[fold != k]], y[train[fold != k]])
+        offset[train[fold == k]] = _logit(
+            model.predict_proba(x[train[fold == k]])[:, 1])
+    return offset
 
-    Parameters
-    ----------
-    source : str, optional
-        Path or URL to a CSV file.
-    data : DataFrame, optional
-        Pre-loaded dataframe.
-    use_real_data : bool
-        If True and no source/data given, try to download Pima dataset.
-    """
-    # ── 1. data loading ──────────────────────────
-    data_source_label = "synthetic"
-    if data is not None:
-        data = prepare_dataset(data, "data/longitudinal_diabetes.csv")
-        data_source_label = "user-provided"
-    elif source:
-        data = load_dataset(source, "data/longitudinal_diabetes.csv")
-        data_source_label = "user-provided"
-    elif use_real_data:
-        try:
-            from .datasets import load_pima
-            data = load_pima("data/longitudinal_diabetes.csv")
-            data_source_label = "pima-indians"
-            print(f"Loaded Pima Indians dataset: "
-                  f"{data.patient_id.nunique()} patients, "
-                  f"{len(data)} rows")
-        except Exception as e:
-            print(f"Could not load Pima ({e}), falling back to synthetic")
-            data = generate_dataset()
-    else:
-        data = generate_dataset()
 
-    n_patients = data.patient_id.nunique()
-    n_visits = len(data)
-    print(f"Data ready: {n_patients} patients, {n_visits} visits "
-          f"({data_source_label})")
-
-    # ── 2. knowledge graph ───────────────────────
-    graph = build_knowledge_graph(data_path="data/longitudinal_diabetes.csv")
-    print(f"Knowledge graph: {graph.number_of_nodes()} nodes, "
-          f"{graph.number_of_edges()} edges")
-
-    # ── 3. feature engineering ───────────────────
-    features = make_patient_features(data)
-    train_ids, test_ids = patient_split(features)
-    print(f"Split: {len(train_ids)} train / {len(test_ids)} test patients")
-
-    # ── 4. trajectory clustering (novel) ─────────
-    ptc = PatientTrajectoryClusterer(n_clusters=5)
-    features = ptc.fit_transform(features)
-    # add cluster one-hot to features for tabular models
-    cluster_dummies = (
-        pd.get_dummies(features["traj_cluster"], prefix="traj")
-    )
-    features = pd.concat([features, cluster_dummies], axis=1)
-    extended_columns = list(features.drop(columns="target").columns)
-
-    # ── 5. baseline classifiers ──────────────────
-    baseline_records = run_baselines(features, train_ids, test_ids)
-    print(f"Baselines done: {[r['model'] for r in baseline_records]}")
-
-    # ── 6. graph models (standard) ───────────────
-    gnn_record = run_graph_model(
-        features, train_ids, test_ids,
-        knowledge=False, longitudinal=False, model_name="gnn",
-    )
-    kg_record = run_graph_model(
-        features, train_ids, test_ids,
-        knowledge=True, longitudinal=False, model_name="gnn_kg",
-    )
-    long_record = run_graph_model(
-        features, train_ids, test_ids,
-        knowledge=True, longitudinal=True,
-        model_name="gnn_kg_longitudinal", return_artifact=True,
-    )
-    long_result, long_artifact = long_record
-
-    # ── 7. novel models ──────────────────────────
-    # TAGNN
-    tagnn_result, tagnn_artifact = _train_tagnn(
-        features, train_ids, test_ids, extended_columns,
-    )
-    print(f"TAGNN F1={tagnn_result['f1']:.3f}  "
-          f"ROC-AUC={tagnn_result['roc_auc']:.3f}")
-
-    # MHFIN
-    mhfin_result, mhfin_model = _train_mhfin(
-        features, train_ids, test_ids, extended_columns,
-    )
-    print(f"MHFIN F1={mhfin_result['f1']:.3f}  "
-          f"ROC-AUC={mhfin_result['roc_auc']:.3f}")
-
-    # ── 8. Confidence-Calibrated Fusion ──────────
-    # stack predictions from the best models on test set
-    ids = list(features.index)
-    index = {pid: i for i, pid in enumerate(ids)}
-    test_idx = [index[pid] for pid in test_ids]
-
-    scaler_temp = StandardScaler().fit(
-        features.loc[train_ids, extended_columns]
-    )
-    test_x_np = scaler_temp.transform(features.loc[test_ids, extended_columns])
-    test_x_t = torch.tensor(test_x_np, dtype=torch.float32)
-
-    # gather predictions from available models
-    stack_test = []
-    stack_train = []
-
-    # run each model on train to get stack_train
-    train_x_np = scaler_temp.transform(
-        features.loc[train_ids, extended_columns]
-    )
-    train_x_t = torch.tensor(train_x_np, dtype=torch.float32)
-
-    # simple fallback: use baseline probs
-    x_all = features.drop(columns="target")
-    scaler_full = StandardScaler().fit(x_all.loc[train_ids])
-    all_x = scaler_full.transform(x_all)
-
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.ensemble import RandomForestClassifier
-    from xgboost import XGBClassifier
-    import warnings
-    warnings.filterwarnings("ignore")
-
-    simple_models = [
-        ("lr", LogisticRegression(max_iter=2000, random_state=42)),
-        ("rf", RandomForestClassifier(n_estimators=80, random_state=42)),
-        ("xgb", XGBClassifier(n_estimators=80, max_depth=3,
-                               eval_metric="logloss", random_state=42)),
-    ]
-
-    y_train_np = features.loc[train_ids, "target"].to_numpy()
-    y_test_np = features.loc[test_ids, "target"].to_numpy()
-
-    for name, m in simple_models:
-        m.fit(all_x[train_idx := [index[pid] for pid in train_ids]],
-              y_train_np)
-        stack_train.append(m.predict_proba(
-            all_x[[index[pid] for pid in train_ids]]
-        )[:, 1])
-        stack_test.append(
-            m.predict_proba(all_x[[index[pid] for pid in test_ids]])[:, 1]
-        )
-
-    # add GNN predictions to the stack
-    from .models import train_graph_model, predict_graph_model
-    gnn_m, gnn_s, gnn_c, gnn_ei, gnn_ew = train_graph_model(
-        features, train_ids, knowledge=False, longitudinal=False
-    )
-    gnn_probs_all, _ = predict_graph_model(
-        gnn_m, gnn_s, gnn_c,
-        features.drop(columns="target"), gnn_ei, gnn_ew,
-    )
-    stack_train.append(gnn_probs_all[[index[pid] for pid in train_ids]])
-    stack_test.append(gnn_probs_all[[index[pid] for pid in test_ids]])
-
-    stack_train_arr = np.column_stack(stack_train)
-    stack_test_arr = np.column_stack(stack_test)
-
-    ccf_result = _run_ccf(
-        stack_train_arr, stack_test_arr, y_train_np, y_test_np,
-    )
-    print(f"CCF Fusion F1={ccf_result['f1']:.3f}  "
-          f"ROC-AUC={ccf_result['roc_auc']:.3f}")
-
-    # ── 9. save artifacts ────────────────────────
-    all_records = (
-        baseline_records
-        + [gnn_record, kg_record, long_result, tagnn_result, mhfin_result,
-           ccf_result]
+def run_job(task: str, kind: str, repeat: int, models: list[str],
+            train_fraction: float = 1.0, tag: str = "", save_models=False,
+            threads: int = 2, verbose=False) -> str:
+    import torch
+    torch.set_num_threads(threads)
+    from .baselines import fit_classical
+    from .data import task_labels
+    from .evaluation import choose_threshold, evaluate
+    from .features import SequenceEncoder, TabularEncoder
+    from .knowledge_graph import ClinicalKnowledgeGraph
+    from .neural import (
+        SequenceData, build_model, predict, train_model, uses_prior_outcomes,
     )
 
-    # save model metrics
-    save_json(all_records, "outputs/model_metrics.json")
+    name = f"{task}_{kind}_r{repeat}{tag}"
+    out_json = RUNS / f"{name}.json"
+    if out_json.exists():
+        return name
+    started = time.time()
+    cohort, history = _cohort()
+    y = np.clip(task_labels(cohort, task), 0, 1).astype(np.float32)
+    split = _split(cohort, task, kind, repeat)
+    if train_fraction < 1.0:
+        pids = cohort["patient_nbr"].to_numpy()[split["train"]]
+        unique = np.unique(pids)
+        rng = np.random.default_rng(500 + repeat)
+        keep = rng.choice(unique, int(train_fraction * len(unique)),
+                          replace=False)
+        split = dict(split, train=split["train"][np.isin(pids, keep)])
+    tr, va, te = split["train"], split["val"], split["test"]
+    seed = repeat
 
-    # save ablation
-    stage_map = {
-        "logistic_regression": "baseline", "random_forest": "baseline",
-        "xgboost": "baseline", "mlp": "baseline",
-        "gnn": "gnn", "gnn_kg": "gnn+kg",
-        "gnn_kg_longitudinal": "gnn+kg+longitudinal",
-        "tagnn": "novel-tagnn", "mhfin": "novel-mhfin",
-        "ccf_fusion": "novel-ccf",
-    }
-    save_json(
-        [{**r, "ablation_stage": stage_map.get(r["model"], "other")}
-         for r in all_records],
-        "outputs/ablation_metrics.json",
-    )
+    record = {"task": task, "split": kind, "repeat": repeat,
+              "train_fraction": train_fraction,
+              "n": {k: int(len(v)) for k, v in split.items()},
+              "prevalence": {k: float(y[v].mean()) for k, v in split.items()},
+              "models": {}}
+    preds_val, preds_test, extras = {}, {}, {}
 
-    # save GNN+KG+longitudinal artifact
-    model, scaler, columns = long_artifact
-    torch.save({
-        "state_dict": model.state_dict(),
-        "input_dim": len(columns),
-        "scaler_mean": scaler.mean_.tolist(),
-        "scaler_scale": scaler.scale_.tolist(),
-        "columns": columns,
-    }, "outputs/gnn_kg_longitudinal.pt")
+    tab = TabularEncoder().fit(cohort, tr)
+    x = tab.transform(cohort).to_numpy()
+    lgbm_info = None
+    for model_name in [m for m in models if m in CLASSICAL]:
+        model, info = fit_classical(model_name, x[tr], y[tr], x[va], y[va], seed)
+        preds_val[model_name] = model.predict_proba(x[va])[:, 1]
+        preds_test[model_name] = model.predict_proba(x[te])[:, 1]
+        record["models"][model_name] = {"train": info}
+        if model_name == "lightgbm":
+            lgbm_info = (model, info)
+        if verbose:
+            print(f"  [{name}] {model_name} done ({info['train_seconds']:.0f}s)",
+                  flush=True)
 
-    # save TAGNN artifact
-    tagnn_m, tagnn_s, tagnn_c, tagnn_ei, tagnn_ew = tagnn_artifact
-    torch.save({
-        "state_dict": tagnn_m.state_dict(),
-        "input_dim": len(tagnn_c),
-        "scaler_mean": tagnn_s.mean_.tolist(),
-        "scaler_scale": tagnn_s.scale_.tolist(),
-        "columns": tagnn_c,
-    }, "outputs/tagnn.pt")
+    neural = [m for m in models if m not in CLASSICAL]
+    if neural:
+        kg = ClinicalKnowledgeGraph().fit(cohort, tr)
+        seq = SequenceEncoder().fit(cohort, tr)
+        arrays = seq.transform(cohort, kg.encode_diagnoses(cohort))
+        offset = None
+        if "tkgn_b" in neural:
+            if lgbm_info is None:
+                lgbm_info = fit_classical("lightgbm", x[tr], y[tr], x[va],
+                                          y[va], seed)
+            lgbm_model, info = lgbm_info
+            offset = _oof_gbdt_offset(cohort, x, y, split, info["params"],
+                                      lgbm_model.best_iteration_ or 200, seed)
+            offset[va] = _logit(lgbm_model.predict_proba(x[va])[:, 1])
+            offset[te] = _logit(lgbm_model.predict_proba(x[te])[:, 1])
 
-    features.reset_index().to_csv(
-        "outputs/patient_features.csv", index=False
-    )
+        for model_name in neural:
+            arch = {"tkgn_b": "tkgn", "tkgn_no_aux": "tkgn"}.get(model_name,
+                                                                 model_name)
+            aux = AUX_WEIGHT if (arch.startswith("tkgn")
+                                 and model_name != "tkgn_no_aux") else 0.0
+            data = SequenceData(arrays, history, y,
+                                prior_outcomes=uses_prior_outcomes(arch),
+                                offset=offset if model_name == "tkgn_b" else None)
+            torch.manual_seed(seed)
+            model = build_model(arch, kg, seq, max_history=MAX_HISTORY,
+                                dropout=DROPOUT)
+            info = train_model(model, data, tr, va, seed=seed,
+                               aux_weight=aux, **NEURAL_HP)
+            preds_val[model_name] = predict(model, data, va)
+            p_test, gates = predict(model, data, te, with_extras=True)
+            preds_test[model_name] = p_test
+            if gates is not None and model_name in ("tkgn", "tkgn_b"):
+                extras[f"{model_name}_gates"] = gates.astype(np.float32)
+            record["models"][model_name] = {"train": info}
+            if verbose:
+                print(f"  [{name}] {model_name} done "
+                      f"({info['train_seconds']:.0f}s, "
+                      f"val={info['best_val_auroc']:.4f})", flush=True)
+            if save_models and model_name in ("tkgn", "tkgn_b"):
+                _save_deployment(task, model_name, model, kg, seq, tab,
+                                 lgbm_info[0] if model_name == "tkgn_b" else None)
 
-    Path("outputs/split.json").write_text(
-        json.dumps({
-            "split": "patient-level stratified 75/25",
-            "train_patients": len(train_ids),
-            "test_patients": len(test_ids),
-            "data_source": data_source_label,
-            "n_patients": n_patients,
-            "n_visits": n_visits,
-        }),
-        encoding="utf-8",
-    )
+    for model_name in preds_test:
+        threshold = choose_threshold(y[va], preds_val[model_name])
+        record["models"][model_name]["test"] = evaluate(
+            y[te], preds_test[model_name], threshold)
+        record["models"][model_name]["val_auroc"] = float(
+            evaluate(y[va], preds_val[model_name], threshold)["auroc"])
 
-    # explanation for one test patient
-    sample_id = str(test_ids[0])
-    sample = features.loc[sample_id]
-    explanation = {
-        "patient_id": sample_id,
-        "model": "tagnn",
-        "prediction_probability": tagnn_result["example_probability"],
-        "model_contribution": [
-            {"feature": "hba1c_slope",
-             "value": float(sample.hba1c_slope)},
-            {"feature": "glucose_slope",
-             "value": float(sample.glucose_slope)},
-            {"feature": "traj_cluster",
-             "value": int(sample.traj_cluster) if "traj_cluster" in sample.index else 0},
-        ],
-        "interpretation": (
-            "Feature contribution probe for this patient. Values are the "
-            "feature values used by the model for this prediction."
-        ),
-    }
-    Path("outputs/explanation.json").write_text(
-        json.dumps(explanation, indent=2), encoding="utf-8"
-    )
+    RUNS.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(
+        RUNS / f"{name}.npz", test_rows=te, y=y[te],
+        **{f"p_{k}": v.astype(np.float32) for k, v in preds_test.items()},
+        **extras)
+    record["seconds"] = time.time() - started
+    out_json.write_text(json.dumps(record, indent=2), encoding="utf-8")
+    return name
 
-    # save CCF weights
-    save_json([ccf_result], "outputs/ccf_weights.json")
 
-    print(f"\nPipeline complete. {len(all_records)} models evaluated.")
-    print(f"Best F1: {max(r['f1'] for r in all_records):.3f} "
-          f"({max(all_records, key=lambda r: r['f1'])['model']})")
-    return all_records
+def _save_deployment(task, model_name, model, kg, seq, tab, gbdt):
+    import joblib
+    import torch
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    torch.save(model.state_dict(), MODELS_DIR / f"{task}_{model_name}.pt")
+    joblib.dump({"kg": kg, "seq": seq, "tab": tab, "gbdt": gbdt,
+                 "max_history": MAX_HISTORY, "dropout": DROPOUT},
+                MODELS_DIR / f"{task}_{model_name}_context.joblib")
+
+
+def build_jobs(args) -> list[dict]:
+    tasks = args.tasks.split(",")
+    base = CLASSICAL + SEQUENCE + ["tkgn_b"]
+    jobs = []
+    for task in tasks:
+        for r in range(args.repeats):
+            models = base + (ABLATIONS if r < args.ablation_repeats else [])
+            jobs.append(dict(task=task, kind="grouped", repeat=r,
+                             models=models, save_models=(r == 0)))
+        for r in range(args.temporal_seeds):
+            jobs.append(dict(task=task, kind="temporal", repeat=r,
+                             models=base))
+        for frac in args.fractions:
+            jobs.append(dict(task=task, kind="grouped", repeat=0,
+                             models=["lightgbm", "gru", "tkgn", "tkgn_b"],
+                             train_fraction=frac, tag=f"_f{frac:g}"))
+    return jobs
+
+
+def _run(job, threads, verbose):
+    t0 = time.time()
+    name = run_job(threads=threads, verbose=verbose, **job)
+    return name, time.time() - t0
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("--tasks", default="readmit30,escalation")
+    parser.add_argument("--repeats", type=int, default=5)
+    parser.add_argument("--ablation-repeats", type=int, default=3)
+    parser.add_argument("--temporal-seeds", type=int, default=3)
+    parser.add_argument("--fractions", default="0.05,0.1,0.25,0.5")
+    parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--threads", type=int, default=2)
+    parser.add_argument("--quick", action="store_true",
+                        help="1 repeat, no ablations/temporal/learning curve")
+    parser.add_argument("--aggregate-only", action="store_true")
+    parser.add_argument("--verbose", action="store_true")
+    args = parser.parse_args()
+    args.fractions = [float(f) for f in args.fractions.split(",") if f]
+    if args.quick:
+        args.repeats, args.ablation_repeats, args.temporal_seeds = 1, 0, 0
+        args.fractions = []
+
+    if not args.aggregate_only:
+        jobs = build_jobs(args)
+        print(f"{len(jobs)} jobs, {args.workers} workers", flush=True)
+        if args.workers <= 1:
+            for job in jobs:
+                print(_run(job, args.threads, args.verbose), flush=True)
+        else:
+            with ProcessPoolExecutor(args.workers) as pool:
+                futures = [pool.submit(_run, job, args.threads, args.verbose)
+                           for job in jobs]
+                for future in futures:
+                    name, secs = future.result()
+                    print(f"finished {name} in {secs / 60:.1f} min", flush=True)
+
+    from .analysis import aggregate
+    aggregate()
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Train from generated, real, or user-provided data."
-    )
-    parser.add_argument(
-        "--input",
-        help="CSV path or HTTP CSV URL; omit for generated demo cohort",
-    )
-    parser.add_argument(
-        "--real", action="store_true",
-        help="Use Pima Indians Diabetes dataset instead of synthetic",
-    )
-    args = parser.parse_args()
-
-    if args.real:
-        run(use_real_data=True)
-    else:
-        run(source=args.input)
+    os.environ.setdefault("OMP_NUM_THREADS", "2")
+    main()

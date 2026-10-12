@@ -1,0 +1,722 @@
+[
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "logistic_regression",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.02261003043084462,
+    "wins": 5,
+    "t_test_p": 3.837805068987646e-05
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "random_forest",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.00325566879166419,
+    "wins": 5,
+    "t_test_p": 0.02664361887499358
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "xgboost",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.001594573637561747,
+    "wins": 5,
+    "t_test_p": 0.09291960369240226
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "lightgbm",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.0015156257420605001,
+    "wins": 5,
+    "t_test_p": 0.08801137577824625
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "mlp",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.04218342049792996,
+    "wins": 5,
+    "t_test_p": 0.0005839754521223623
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "gru",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.007132517806410976,
+    "wins": 5,
+    "t_test_p": 0.039683493419924804
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "retain",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.011067983662223013,
+    "wins": 5,
+    "t_test_p": 0.008768390117459682
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "transformer",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.009451771990094083,
+    "wins": 5,
+    "t_test_p": 0.042936115764798305
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "tkgn",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.010086217213881232,
+    "wins": 5,
+    "t_test_p": 0.002547538121603136
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "logistic_regression",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.03359892937008979,
+    "wins": 3,
+    "t_test_p": 0.01878374887945453
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "random_forest",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.008425520967327071,
+    "wins": 2,
+    "t_test_p": 0.2267370663909613
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "xgboost",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.006386178781342215,
+    "wins": 2,
+    "t_test_p": 0.4320915279871472
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "lightgbm",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.006885748352496594,
+    "wins": 2,
+    "t_test_p": 0.33776937871100754
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "mlp",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.057697626209653574,
+    "wins": 3,
+    "t_test_p": 0.015155079263317437
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "gru",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.009309714168860136,
+    "wins": 3,
+    "t_test_p": 0.14830398384861193
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "retain",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.011778784310621218,
+    "wins": 3,
+    "t_test_p": 0.15561298817339805
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "transformer",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.011997956699847675,
+    "wins": 3,
+    "t_test_p": 0.12175895338814993
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "tkgn",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.01153458602969796,
+    "wins": 3,
+    "t_test_p": 0.05183883529649637
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "logistic_regression",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.020816096539112917,
+    "wins": 5,
+    "t_test_p": 4.273555551971269e-05
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "random_forest",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.007784553788441029,
+    "wins": 5,
+    "t_test_p": 0.03179105237337147
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "xgboost",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.0017832628754718804,
+    "wins": 4,
+    "t_test_p": 0.26439102630021116
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "lightgbm",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.001966394655299952,
+    "wins": 4,
+    "t_test_p": 0.12325692312763536
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "mlp",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.03701591706293028,
+    "wins": 5,
+    "t_test_p": 7.56874464773716e-05
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "gru",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.007307591497792032,
+    "wins": 5,
+    "t_test_p": 0.002941647268424009
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "retain",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.0065727552096335184,
+    "wins": 5,
+    "t_test_p": 0.0067039594030529155
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "transformer",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.007081889394630369,
+    "wins": 5,
+    "t_test_p": 0.005009396632447046
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn_b",
+    "model": "tkgn",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.007112185254930292,
+    "wins": 5,
+    "t_test_p": 0.0024509166269042156
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "logistic_regression",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.08174413233871074,
+    "wins": 3,
+    "t_test_p": 0.0008733664462482149
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "random_forest",
+    "n_repeats": 3,
+    "mean_delta_auroc": -0.015562933159727455,
+    "wins": 0,
+    "t_test_p": 0.01128735632248292
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "xgboost",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.0008154361567974296,
+    "wins": 2,
+    "t_test_p": 0.8051465950063237
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "lightgbm",
+    "n_repeats": 3,
+    "mean_delta_auroc": 6.679965394951193e-05,
+    "wins": 1,
+    "t_test_p": 0.8742671204705541
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "mlp",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.08353788438800284,
+    "wins": 3,
+    "t_test_p": 0.0008475364687401108
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "gru",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.00034244194827163604,
+    "wins": 2,
+    "t_test_p": 0.9014418725886962
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "retain",
+    "n_repeats": 3,
+    "mean_delta_auroc": -0.0019634930911310855,
+    "wins": 1,
+    "t_test_p": 0.4894079226224056
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "transformer",
+    "n_repeats": 3,
+    "mean_delta_auroc": -0.005176428287018771,
+    "wins": 1,
+    "t_test_p": 0.3026168036716062
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn_b",
+    "model": "tkgn",
+    "n_repeats": 3,
+    "mean_delta_auroc": -0.004380939612371811,
+    "wins": 1,
+    "t_test_p": 0.30226882161455326
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "logistic_regression",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.012523813216963386,
+    "wins": 5,
+    "t_test_p": 0.0038196842230228192
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "random_forest",
+    "n_repeats": 5,
+    "mean_delta_auroc": -0.006830548422217042,
+    "wins": 0,
+    "t_test_p": 0.02422677785381678
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "xgboost",
+    "n_repeats": 5,
+    "mean_delta_auroc": -0.008491643576319485,
+    "wins": 0,
+    "t_test_p": 0.008173998251886527
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "lightgbm",
+    "n_repeats": 5,
+    "mean_delta_auroc": -0.008570591471820732,
+    "wins": 0,
+    "t_test_p": 0.005497493692740592
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "mlp",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.03209720328404873,
+    "wins": 5,
+    "t_test_p": 0.0012216342621365122
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "gru",
+    "n_repeats": 5,
+    "mean_delta_auroc": -0.002953699407470256,
+    "wins": 2,
+    "t_test_p": 0.3980374682119094
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "retain",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.000981766448341781,
+    "wins": 2,
+    "t_test_p": 0.6630320369673931
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "transformer",
+    "n_repeats": 5,
+    "mean_delta_auroc": -0.00063444522378715,
+    "wins": 1,
+    "t_test_p": 0.8553873056419762
+  },
+  {
+    "task": "escalation",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "tkgn_b",
+    "n_repeats": 5,
+    "mean_delta_auroc": -0.010086217213881232,
+    "wins": 0,
+    "t_test_p": 0.002547538121603136
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "logistic_regression",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.02206434334039183,
+    "wins": 3,
+    "t_test_p": 0.011110449822919553
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "random_forest",
+    "n_repeats": 3,
+    "mean_delta_auroc": -0.0031090650623708895,
+    "wins": 0,
+    "t_test_p": 0.31475141227467873
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "xgboost",
+    "n_repeats": 3,
+    "mean_delta_auroc": -0.005148407248355746,
+    "wins": 1,
+    "t_test_p": 0.4070268510488828
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "lightgbm",
+    "n_repeats": 3,
+    "mean_delta_auroc": -0.004648837677201367,
+    "wins": 0,
+    "t_test_p": 0.25167427534302195
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "mlp",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.046163040179955615,
+    "wins": 3,
+    "t_test_p": 0.009247663930548353
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "gru",
+    "n_repeats": 3,
+    "mean_delta_auroc": -0.0022248718608378257,
+    "wins": 1,
+    "t_test_p": 0.5535005314155724
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "retain",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.0002441982809232579,
+    "wins": 1,
+    "t_test_p": 0.9592417975860998
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "transformer",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.0004633706701497135,
+    "wins": 2,
+    "t_test_p": 0.8497983422655775
+  },
+  {
+    "task": "escalation",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "tkgn_b",
+    "n_repeats": 3,
+    "mean_delta_auroc": -0.01153458602969796,
+    "wins": 0,
+    "t_test_p": 0.05183883529649637
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "logistic_regression",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.013703911284182625,
+    "wins": 5,
+    "t_test_p": 0.00021316460214562002
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "random_forest",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.0006723685335107366,
+    "wins": 3,
+    "t_test_p": 0.8078474672076735
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "xgboost",
+    "n_repeats": 5,
+    "mean_delta_auroc": -0.005328922379458412,
+    "wins": 0,
+    "t_test_p": 0.026266387739793024
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "lightgbm",
+    "n_repeats": 5,
+    "mean_delta_auroc": -0.00514579059963034,
+    "wins": 0,
+    "t_test_p": 0.03119348740062193
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "mlp",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.02990373180799999,
+    "wins": 5,
+    "t_test_p": 0.00026334159386297713
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "gru",
+    "n_repeats": 5,
+    "mean_delta_auroc": 0.0001954062428617398,
+    "wins": 3,
+    "t_test_p": 0.9090980478495566
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "retain",
+    "n_repeats": 5,
+    "mean_delta_auroc": -0.0005394300452967737,
+    "wins": 2,
+    "t_test_p": 0.7294924881281739
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "transformer",
+    "n_repeats": 5,
+    "mean_delta_auroc": -3.0295860299922596e-05,
+    "wins": 1,
+    "t_test_p": 0.976622210758166
+  },
+  {
+    "task": "readmit30",
+    "split": "grouped",
+    "reference": "tkgn",
+    "model": "tkgn_b",
+    "n_repeats": 5,
+    "mean_delta_auroc": -0.007112185254930292,
+    "wins": 0,
+    "t_test_p": 0.0024509166269042156
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "logistic_regression",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.08612507195108254,
+    "wins": 3,
+    "t_test_p": 0.001664323012277453
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "random_forest",
+    "n_repeats": 3,
+    "mean_delta_auroc": -0.011181993547355643,
+    "wins": 0,
+    "t_test_p": 0.0839023800895096
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "xgboost",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.005196375769169241,
+    "wins": 3,
+    "t_test_p": 0.2952459595384753
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "lightgbm",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.004447739266321323,
+    "wins": 2,
+    "t_test_p": 0.2544340995236751
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "mlp",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.08791882400037465,
+    "wins": 3,
+    "t_test_p": 0.00013771709361683646
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "gru",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.004723381560643447,
+    "wins": 3,
+    "t_test_p": 0.26975706348297435
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "retain",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.0024174465212407257,
+    "wins": 2,
+    "t_test_p": 0.4079520951421439
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "transformer",
+    "n_repeats": 3,
+    "mean_delta_auroc": -0.0007954886746469603,
+    "wins": 1,
+    "t_test_p": 0.8488713234499207
+  },
+  {
+    "task": "readmit30",
+    "split": "temporal",
+    "reference": "tkgn",
+    "model": "tkgn_b",
+    "n_repeats": 3,
+    "mean_delta_auroc": 0.004380939612371811,
+    "wins": 2,
+    "t_test_p": 0.30226882161455326
+  }
+]

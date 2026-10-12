@@ -1,0 +1,5 @@
+- Real diabetes inpatient records; patient-disjoint and temporal validation.
+- Boosting-anchored sequence model matches or beats tuned gradient boosting.
+- Earlier stays drive gains; knowledge-graph code sharing adds little.
+- Also predicts treatment escalation at the next hospital stay.
+- Calibration, subgroup and temporal-shift analyses; all code released.

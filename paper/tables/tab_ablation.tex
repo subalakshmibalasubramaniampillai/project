@@ -1,0 +1,16 @@
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+ & \multicolumn{2}{c}{30-day readmission} & \multicolumn{2}{c}{Treatment escalation} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Variant & AUROC & $\Delta$ & AUROC & $\Delta$ \\
+\midrule
+Full TKGN & 0.6847$\pm$0.0035 & -- & 0.6781$\pm$0.0151 & -- \\
+$-$ knowledge graph (flat code embeddings) & 0.6857$\pm$0.0038 & +0.0011 & 0.6819$\pm$0.0172 & +0.0038 \\
+$-$ co-morbidity (PPMI) propagation & 0.6888$\pm$0.0036 & +0.0042 & 0.6843$\pm$0.0162 & +0.0063 \\
+$-$ earlier encounters (index stay only) & 0.6773$\pm$0.0059 & -0.0073 & 0.6601$\pm$0.0191 & -0.0179 \\
+$-$ history-reliability gates & 0.6837$\pm$0.0036 & -0.0009 & 0.6778$\pm$0.0158 & -0.0002 \\
+$-$ delta encoding & 0.6851$\pm$0.0038 & +0.0005 & 0.6770$\pm$0.0137 & -0.0010 \\
+$-$ outcomes of earlier stays & 0.6826$\pm$0.0033 & -0.0021 & 0.6803$\pm$0.0156 & +0.0023 \\
+$-$ auxiliary outcome head & 0.6826$\pm$0.0025 & -0.0021 & 0.6819$\pm$0.0202 & +0.0039 \\
+\bottomrule
+\end{tabular}

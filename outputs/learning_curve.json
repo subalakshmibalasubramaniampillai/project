@@ -1,0 +1,362 @@
+[
+  {
+    "task": "escalation",
+    "fraction": 0.05,
+    "n_train": 1029,
+    "model": "gru",
+    "auroc": 0.6073219343361305,
+    "auroc_no_history": 0.6146619262321132,
+    "auroc_with_history": 0.6065984100723458
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.1,
+    "n_train": 2108,
+    "model": "gru",
+    "auroc": 0.6425324490657892,
+    "auroc_no_history": 0.6323862716031157,
+    "auroc_with_history": 0.6566632550053279
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.25,
+    "n_train": 5270,
+    "model": "gru",
+    "auroc": 0.6576561020464267,
+    "auroc_no_history": 0.6428242492090733,
+    "auroc_with_history": 0.6759632101396444
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.5,
+    "n_train": 10441,
+    "model": "gru",
+    "auroc": 0.6626033798850024,
+    "auroc_no_history": 0.6497552894187022,
+    "auroc_with_history": 0.6788507374796702
+  },
+  {
+    "task": "escalation",
+    "fraction": 1.0,
+    "n_train": 20726,
+    "model": "gru",
+    "auroc": 0.6719539798885835,
+    "auroc_no_history": 0.658540676086025,
+    "auroc_with_history": 0.6898217991139027
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.05,
+    "n_train": 1029,
+    "model": "lightgbm",
+    "auroc": 0.6321657585597807,
+    "auroc_no_history": 0.630431662494182,
+    "auroc_with_history": 0.6382928607481353
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.1,
+    "n_train": 2108,
+    "model": "lightgbm",
+    "auroc": 0.6461436353697186,
+    "auroc_no_history": 0.6361983027111924,
+    "auroc_with_history": 0.6569226347372553
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.25,
+    "n_train": 5270,
+    "model": "lightgbm",
+    "auroc": 0.6576099550142142,
+    "auroc_no_history": 0.6430645515142941,
+    "auroc_with_history": 0.6739673882564073
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.5,
+    "n_train": 10441,
+    "model": "lightgbm",
+    "auroc": 0.6687502172399519,
+    "auroc_no_history": 0.6529493417316118,
+    "auroc_with_history": 0.6863222758117884
+  },
+  {
+    "task": "escalation",
+    "fraction": 1.0,
+    "n_train": 20726,
+    "model": "lightgbm",
+    "auroc": 0.6788248187560497,
+    "auroc_no_history": 0.6665756306397743,
+    "auroc_with_history": 0.693713897145421
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.05,
+    "n_train": 1029,
+    "model": "tkgn",
+    "auroc": 0.6004391143561639,
+    "auroc_no_history": 0.5996338055314638,
+    "auroc_with_history": 0.5999726599742022
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.1,
+    "n_train": 2108,
+    "model": "tkgn",
+    "auroc": 0.6468272170851191,
+    "auroc_no_history": 0.6310379542318426,
+    "auroc_with_history": 0.6664951488979867
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.25,
+    "n_train": 5270,
+    "model": "tkgn",
+    "auroc": 0.6518381528126386,
+    "auroc_no_history": 0.6382609658430367,
+    "auroc_with_history": 0.667687594638551
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.5,
+    "n_train": 10441,
+    "model": "tkgn",
+    "auroc": 0.657266913381033,
+    "auroc_no_history": 0.6397540386985129,
+    "auroc_with_history": 0.6785906567214403
+  },
+  {
+    "task": "escalation",
+    "fraction": 1.0,
+    "n_train": 20726,
+    "model": "tkgn",
+    "auroc": 0.6746811970790312,
+    "auroc_no_history": 0.6615038577541577,
+    "auroc_with_history": 0.6944044080533902
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.05,
+    "n_train": 1029,
+    "model": "tkgn_b",
+    "auroc": 0.6270162500750466,
+    "auroc_no_history": 0.6284561397033948,
+    "auroc_with_history": 0.6348571308395491
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.1,
+    "n_train": 2108,
+    "model": "tkgn_b",
+    "auroc": 0.6525707780929441,
+    "auroc_no_history": 0.6385660595547846,
+    "auroc_with_history": 0.6682301889966912
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.25,
+    "n_train": 5270,
+    "model": "tkgn_b",
+    "auroc": 0.6599830052527305,
+    "auroc_no_history": 0.6446494805410492,
+    "auroc_with_history": 0.6772748303516348
+  },
+  {
+    "task": "escalation",
+    "fraction": 0.5,
+    "n_train": 10441,
+    "model": "tkgn_b",
+    "auroc": 0.674322356176619,
+    "auroc_no_history": 0.6533686405491687,
+    "auroc_with_history": 0.6988958835735517
+  },
+  {
+    "task": "escalation",
+    "fraction": 1.0,
+    "n_train": 20726,
+    "model": "tkgn_b",
+    "auroc": 0.6791699011281731,
+    "auroc_no_history": 0.6665809615782858,
+    "auroc_with_history": 0.6942754192137288
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.05,
+    "n_train": 3511,
+    "model": "gru",
+    "auroc": 0.6396883494780186,
+    "auroc_no_history": 0.5938555392161421,
+    "auroc_with_history": 0.602908300735513
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.1,
+    "n_train": 6993,
+    "model": "gru",
+    "auroc": 0.641584741390456,
+    "auroc_no_history": 0.5961091827060814,
+    "auroc_with_history": 0.6097308259610327
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.25,
+    "n_train": 17368,
+    "model": "gru",
+    "auroc": 0.6708485687036955,
+    "auroc_no_history": 0.6471629230559118,
+    "auroc_with_history": 0.6263957966351087
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.5,
+    "n_train": 34619,
+    "model": "gru",
+    "auroc": 0.6759693459643196,
+    "auroc_no_history": 0.6528890556356711,
+    "auroc_with_history": 0.6344979008668102
+  },
+  {
+    "task": "readmit30",
+    "fraction": 1.0,
+    "n_train": 69687,
+    "model": "gru",
+    "auroc": 0.6861566510088587,
+    "auroc_no_history": 0.6622457578094079,
+    "auroc_with_history": 0.6470272831483859
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.05,
+    "n_train": 3511,
+    "model": "lightgbm",
+    "auroc": 0.6444220798004048,
+    "auroc_no_history": 0.6190841502565629,
+    "auroc_with_history": 0.5994833437726418
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.1,
+    "n_train": 6993,
+    "model": "lightgbm",
+    "auroc": 0.6478496289913704,
+    "auroc_no_history": 0.6112600509058443,
+    "auroc_with_history": 0.6044681925543608
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.25,
+    "n_train": 17368,
+    "model": "lightgbm",
+    "auroc": 0.6604965718115269,
+    "auroc_no_history": 0.6361665231037599,
+    "auroc_with_history": 0.6043734908562824
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.5,
+    "n_train": 34619,
+    "model": "lightgbm",
+    "auroc": 0.6784578920752753,
+    "auroc_no_history": 0.6562397107715068,
+    "auroc_with_history": 0.6300620901834052
+  },
+  {
+    "task": "readmit30",
+    "fraction": 1.0,
+    "n_train": 69687,
+    "model": "lightgbm",
+    "auroc": 0.6920367803013565,
+    "auroc_no_history": 0.6713904840850128,
+    "auroc_with_history": 0.646277886173826
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.05,
+    "n_train": 3511,
+    "model": "tkgn",
+    "auroc": 0.6373903349960804,
+    "auroc_no_history": 0.5926675949072902,
+    "auroc_with_history": 0.6019051369192726
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.1,
+    "n_train": 6993,
+    "model": "tkgn",
+    "auroc": 0.6438204258702828,
+    "auroc_no_history": 0.600368595153931,
+    "auroc_with_history": 0.6248621347637818
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.25,
+    "n_train": 17368,
+    "model": "tkgn",
+    "auroc": 0.6710386911921864,
+    "auroc_no_history": 0.6468974945663385,
+    "auroc_with_history": 0.6366379064246095
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.5,
+    "n_train": 34619,
+    "model": "tkgn",
+    "auroc": 0.6769381012320039,
+    "auroc_no_history": 0.6554090132202492,
+    "auroc_with_history": 0.6345888102833193
+  },
+  {
+    "task": "readmit30",
+    "fraction": 1.0,
+    "n_train": 69687,
+    "model": "tkgn",
+    "auroc": 0.6811503563818557,
+    "auroc_no_history": 0.6562478709896086,
+    "auroc_with_history": 0.6457225276062296
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.05,
+    "n_train": 3511,
+    "model": "tkgn_b",
+    "auroc": 0.6515607253529655,
+    "auroc_no_history": 0.6227939815038852,
+    "auroc_with_history": 0.605568375574083
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.1,
+    "n_train": 6993,
+    "model": "tkgn_b",
+    "auroc": 0.6510168113796709,
+    "auroc_no_history": 0.6140958215824611,
+    "auroc_with_history": 0.6155599840976993
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.25,
+    "n_train": 17368,
+    "model": "tkgn_b",
+    "auroc": 0.6688075456150774,
+    "auroc_no_history": 0.6472611303319039,
+    "auroc_with_history": 0.6303678955555091
+  },
+  {
+    "task": "readmit30",
+    "fraction": 0.5,
+    "n_train": 34619,
+    "model": "tkgn_b",
+    "auroc": 0.6809729556066163,
+    "auroc_no_history": 0.6605224652385778,
+    "auroc_with_history": 0.6363480075668658
+  },
+  {
+    "task": "readmit30",
+    "fraction": 1.0,
+    "n_train": 69687,
+    "model": "tkgn_b",
+    "auroc": 0.6922785695669821,
+    "auroc_no_history": 0.6728355068928223,
+    "auroc_with_history": 0.6538103054408917
+  }
+]

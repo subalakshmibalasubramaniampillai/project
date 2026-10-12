@@ -1,0 +1,522 @@
+{
+  "readmit30": {
+    "permutation_importance": {
+      "task": "readmit30",
+      "base_auroc": 0.6870633146263936,
+      "n": 8000,
+      "groups": [
+        {
+          "group": "Utilisation counts",
+          "auroc_drop": 0.053419111496403104,
+          "sd": 0.001477000741085381
+        },
+        {
+          "group": "Prior encounters (sequence)",
+          "auroc_drop": 0.038089991026752514,
+          "sd": 0.0016570163348084248
+        },
+        {
+          "group": "Admission / discharge context",
+          "auroc_drop": 0.032699553365474886,
+          "sd": 0.003956123034504689
+        },
+        {
+          "group": "Diagnoses (ICD-9 codes)",
+          "auroc_drop": 0.02127224934475021,
+          "sd": 0.005189395522674667
+        },
+        {
+          "group": "Anti-diabetic medications",
+          "auroc_drop": 0.004782487465336456,
+          "sd": 0.00029473027492103385
+        },
+        {
+          "group": "Outcomes of prior encounters",
+          "auroc_drop": 0.0029581299143739415,
+          "sd": 0.0
+        },
+        {
+          "group": "Demographics",
+          "auroc_drop": 0.002127876382108355,
+          "sd": 0.0009571141636407948
+        },
+        {
+          "group": "Medication change flags",
+          "auroc_drop": 2.1038970257070133e-06,
+          "sd": 0.00028314774724318907
+        },
+        {
+          "group": "Glycaemic tests (HbA1c, glucose)",
+          "auroc_drop": -0.0010347624624213274,
+          "sd": 0.001062975964196473
+        }
+      ]
+    },
+    "treeshap": [
+      {
+        "feature": "number_inpatient",
+        "mean_abs_shap": 0.18431011128914415,
+        "mean_shap_when_present": 0.22830531179632765
+      },
+      {
+        "feature": "discharge_disposition_id=1",
+        "mean_abs_shap": 0.16500458496051512,
+        "mean_shap_when_present": -0.13776209371102027
+      },
+      {
+        "feature": "hist_mean_number_diagnoses",
+        "mean_abs_shap": 0.061761470366710515,
+        "mean_shap_when_present": 0.08254127236931583
+      },
+      {
+        "feature": "payer_code=<MISSING>",
+        "mean_abs_shap": 0.05196113348333135,
+        "mean_shap_when_present": 0.0645780738927235
+      },
+      {
+        "feature": "number_diagnoses",
+        "mean_abs_shap": 0.042168893693259484,
+        "mean_shap_when_present": 0.003922768259978248
+      },
+      {
+        "feature": "time_in_hospital",
+        "mean_abs_shap": 0.03434200156814018,
+        "mean_shap_when_present": 0.0022950396854319924
+      },
+      {
+        "feature": "age=[50-60)",
+        "mean_abs_shap": 0.034318374332724375,
+        "mean_shap_when_present": -0.09418313400150603
+      },
+      {
+        "feature": "hist_last_outcome_gt30",
+        "mean_abs_shap": 0.03222700285684149,
+        "mean_shap_when_present": -0.04349350356895306
+      },
+      {
+        "feature": "dx=428",
+        "mean_abs_shap": 0.031539645553578036,
+        "mean_shap_when_present": 0.0938924743108295
+      },
+      {
+        "feature": "discharge_disposition_id=22",
+        "mean_abs_shap": 0.029862961992899714,
+        "mean_shap_when_present": 0.6953608958080576
+      },
+      {
+        "feature": "discharge_disposition_id=3",
+        "mean_abs_shap": 0.029011265681702134,
+        "mean_shap_when_present": 0.08835549196894146
+      },
+      {
+        "feature": "diabetesMed=No",
+        "mean_abs_shap": 0.02840558190112996,
+        "mean_shap_when_present": -0.059605078973074654
+      },
+      {
+        "feature": "hist_mean_num_medications",
+        "mean_abs_shap": 0.02835560348085367,
+        "mean_shap_when_present": 0.04713430731625866
+      },
+      {
+        "feature": "number_emergency",
+        "mean_abs_shap": 0.027301932887215236,
+        "mean_shap_when_present": 0.11653486677111151
+      },
+      {
+        "feature": "num_medications",
+        "mean_abs_shap": 0.025726920124074324,
+        "mean_shap_when_present": 0.001569296712053017
+      },
+      {
+        "feature": "num_lab_procedures",
+        "mean_abs_shap": 0.0254498022925873,
+        "mean_shap_when_present": 0.0007419589856709572
+      },
+      {
+        "feature": "primary_chapter=C07",
+        "mean_abs_shap": 0.024121838978132245,
+        "mean_shap_when_present": 0.03800870035638873
+      },
+      {
+        "feature": "hist_mean_time_in_hospital",
+        "mean_abs_shap": 0.02177535971337731,
+        "mean_shap_when_present": 0.026514942181228518
+      },
+      {
+        "feature": "hist_prior_readmit30",
+        "mean_abs_shap": 0.01951512572873596,
+        "mean_shap_when_present": 0.06791942950195838
+      },
+      {
+        "feature": "dx=401",
+        "mean_abs_shap": 0.018518472888862804,
+        "mean_shap_when_present": -0.07718409821017518
+      }
+    ],
+    "examples": [
+      {
+        "patient_nbr": 42854949,
+        "encounter_id": 344915258,
+        "probability": 0.19554010033607483,
+        "gate_history": 0.380237877368927,
+        "gate_delta": 0.3637368679046631,
+        "history": [
+          {
+            "encounter_id": 192124236,
+            "primary_diagnosis": "403",
+            "readmitted": "<30",
+            "attention": 0.028048325330018997
+          },
+          {
+            "encounter_id": 195609126,
+            "primary_diagnosis": "403",
+            "readmitted": ">30",
+            "attention": 0.04348656162619591
+          },
+          {
+            "encounter_id": 211386948,
+            "primary_diagnosis": "434",
+            "readmitted": ">30",
+            "attention": 0.24182672798633575
+          },
+          {
+            "encounter_id": 226914120,
+            "primary_diagnosis": "558",
+            "readmitted": ">30",
+            "attention": 0.5773477554321289
+          },
+          {
+            "encounter_id": 292693932,
+            "primary_diagnosis": "443",
+            "readmitted": ">30",
+            "attention": 0.07401645928621292
+          },
+          {
+            "encounter_id": 305475200,
+            "primary_diagnosis": "487",
+            "readmitted": ">30",
+            "attention": 0.03527413681149483
+          }
+        ]
+      },
+      {
+        "patient_nbr": 84369501,
+        "encounter_id": 158321688,
+        "probability": 0.16695894300937653,
+        "gate_history": 0.39856991171836853,
+        "gate_delta": 0.366630494594574,
+        "history": [
+          {
+            "encounter_id": 142232382,
+            "primary_diagnosis": "276",
+            "readmitted": ">30",
+            "attention": 0.24812515079975128
+          },
+          {
+            "encounter_id": 150078240,
+            "primary_diagnosis": "428",
+            "readmitted": "<30",
+            "attention": 0.43842101097106934
+          },
+          {
+            "encounter_id": 151790988,
+            "primary_diagnosis": "428",
+            "readmitted": ">30",
+            "attention": 0.23912683129310608
+          },
+          {
+            "encounter_id": 154852944,
+            "primary_diagnosis": "428",
+            "readmitted": ">30",
+            "attention": 0.0743270218372345
+          }
+        ]
+      },
+      {
+        "patient_nbr": 93690234,
+        "encounter_id": 175644600,
+        "probability": 0.19404414296150208,
+        "gate_history": 0.4035551846027374,
+        "gate_delta": 0.36758267879486084,
+        "history": [
+          {
+            "encounter_id": 123194118,
+            "primary_diagnosis": "787",
+            "readmitted": ">30",
+            "attention": 0.3269879221916199
+          },
+          {
+            "encounter_id": 143680386,
+            "primary_diagnosis": "280",
+            "readmitted": ">30",
+            "attention": 0.28896692395210266
+          },
+          {
+            "encounter_id": 170089764,
+            "primary_diagnosis": "996",
+            "readmitted": "<30",
+            "attention": 0.28508734703063965
+          },
+          {
+            "encounter_id": 170797410,
+            "primary_diagnosis": "428",
+            "readmitted": ">30",
+            "attention": 0.09895782172679901
+          }
+        ]
+      }
+    ]
+  },
+  "escalation": {
+    "permutation_importance": {
+      "task": "escalation",
+      "base_auroc": 0.6746811970790312,
+      "n": 5769,
+      "groups": [
+        {
+          "group": "Anti-diabetic medications",
+          "auroc_drop": 0.10606328116414643,
+          "sd": 0.0036791806772132744
+        },
+        {
+          "group": "Prior encounters (sequence)",
+          "auroc_drop": 0.046240818430233865,
+          "sd": 0.0021709206254277515
+        },
+        {
+          "group": "Admission / discharge context",
+          "auroc_drop": 0.03526111627805739,
+          "sd": 0.0024840922816527044
+        },
+        {
+          "group": "Utilisation counts",
+          "auroc_drop": 0.01749483802764736,
+          "sd": 0.002076444045335522
+        },
+        {
+          "group": "Medication change flags",
+          "auroc_drop": 0.014253815435745665,
+          "sd": 0.004846091970366581
+        },
+        {
+          "group": "Diagnoses (ICD-9 codes)",
+          "auroc_drop": 0.005734235050292617,
+          "sd": 0.0009890082268626003
+        },
+        {
+          "group": "Demographics",
+          "auroc_drop": 0.0020390054114253577,
+          "sd": 0.00035965692886051663
+        },
+        {
+          "group": "Glycaemic tests (HbA1c, glucose)",
+          "auroc_drop": 0.0007880982700503303,
+          "sd": 0.00025471555628405303
+        },
+        {
+          "group": "Outcomes of prior encounters",
+          "auroc_drop": -7.873302500172041e-05,
+          "sd": 0.0
+        }
+      ]
+    },
+    "treeshap": [
+      {
+        "feature": "insulin=Steady",
+        "mean_abs_shap": 0.2817039710762301,
+        "mean_shap_when_present": -0.5134070093709054
+      },
+      {
+        "feature": "delta_n_active_drugs",
+        "mean_abs_shap": 0.08953245018345331,
+        "mean_shap_when_present": 0.21791956160730433
+      },
+      {
+        "feature": "hist_mean_n_active_drugs",
+        "mean_abs_shap": 0.0807658925872424,
+        "mean_shap_when_present": 0.08961706354974752
+      },
+      {
+        "feature": "payer_code=<MISSING>",
+        "mean_abs_shap": 0.07293503956908995,
+        "mean_shap_when_present": -0.11004255492309686
+      },
+      {
+        "feature": "time_in_hospital",
+        "mean_abs_shap": 0.06729460642542431,
+        "mean_shap_when_present": -0.0019038997297862537
+      },
+      {
+        "feature": "diabetesMed=No",
+        "mean_abs_shap": 0.05921480631596421,
+        "mean_shap_when_present": 0.13940585745954437
+      },
+      {
+        "feature": "num_medications",
+        "mean_abs_shap": 0.05709694664920823,
+        "mean_shap_when_present": -0.00219376068885418
+      },
+      {
+        "feature": "insulin=Down",
+        "mean_abs_shap": 0.054814131710772304,
+        "mean_shap_when_present": -0.16760279972026684
+      },
+      {
+        "feature": "hist_mean_time_in_hospital",
+        "mean_abs_shap": 0.053003850978709896,
+        "mean_shap_when_present": -0.057134506836177046
+      },
+      {
+        "feature": "hist_mean_num_lab_procedures",
+        "mean_abs_shap": 0.05032461728753549,
+        "mean_shap_when_present": -0.050367168053164095
+      },
+      {
+        "feature": "hist_prior_insulin",
+        "mean_abs_shap": 0.047470771083569965,
+        "mean_shap_when_present": 0.11615553915517164
+      },
+      {
+        "feature": "medical_specialty=<MISSING>",
+        "mean_abs_shap": 0.04165841331500528,
+        "mean_shap_when_present": -0.03902929250636985
+      },
+      {
+        "feature": "num_lab_procedures",
+        "mean_abs_shap": 0.03441963997903175,
+        "mean_shap_when_present": 0.0011203064492462857
+      },
+      {
+        "feature": "insulin=Up",
+        "mean_abs_shap": 0.03379237541487804,
+        "mean_shap_when_present": 0.13194762342682537
+      },
+      {
+        "feature": "admission_type_id=5",
+        "mean_abs_shap": 0.03237802976593644,
+        "mean_shap_when_present": 0.23355228815542836
+      },
+      {
+        "feature": "number_emergency",
+        "mean_abs_shap": 0.024214719299717687,
+        "mean_shap_when_present": 0.07257689723341089
+      },
+      {
+        "feature": "change=Ch",
+        "mean_abs_shap": 0.02366849020757236,
+        "mean_shap_when_present": -0.023154156987233814
+      },
+      {
+        "feature": "payer_code=HM",
+        "mean_abs_shap": 0.0218377356546424,
+        "mean_shap_when_present": -0.14869458584061088
+      },
+      {
+        "feature": "discharge_disposition_id=18",
+        "mean_abs_shap": 0.02177653745787197,
+        "mean_shap_when_present": -0.24511301027075438
+      },
+      {
+        "feature": "hist_mean_num_medications",
+        "mean_abs_shap": 0.02091786068625099,
+        "mean_shap_when_present": -0.0060754785064687
+      }
+    ],
+    "examples": [
+      {
+        "patient_nbr": 45316629,
+        "encounter_id": 360217112,
+        "probability": 0.20173870027065277,
+        "gate_history": 0.6029742956161499,
+        "gate_delta": 0.4943849444389343,
+        "history": [
+          {
+            "encounter_id": 217381908,
+            "primary_diagnosis": "410",
+            "readmitted": ">30",
+            "attention": 0.633051872253418
+          },
+          {
+            "encounter_id": 234798966,
+            "primary_diagnosis": "805",
+            "readmitted": ">30",
+            "attention": 0.23258687555789948
+          },
+          {
+            "encounter_id": 267161982,
+            "primary_diagnosis": "428",
+            "readmitted": ">30",
+            "attention": 0.1343613564968109
+          }
+        ]
+      },
+      {
+        "patient_nbr": 85004658,
+        "encounter_id": 301994870,
+        "probability": 0.3472679555416107,
+        "gate_history": 0.6020491719245911,
+        "gate_delta": 0.4960077404975891,
+        "history": [
+          {
+            "encounter_id": 160144362,
+            "primary_diagnosis": "410",
+            "readmitted": ">30",
+            "attention": 0.4055160880088806
+          },
+          {
+            "encounter_id": 216978492,
+            "primary_diagnosis": "518",
+            "readmitted": ">30",
+            "attention": 0.48503944277763367
+          },
+          {
+            "encounter_id": 246447078,
+            "primary_diagnosis": "486",
+            "readmitted": ">30",
+            "attention": 0.10944443196058273
+          }
+        ]
+      },
+      {
+        "patient_nbr": 94077981,
+        "encounter_id": 352018058,
+        "probability": 0.6897886991500854,
+        "gate_history": 0.5869619250297546,
+        "gate_delta": 0.49554628133773804,
+        "history": [
+          {
+            "encounter_id": 114378222,
+            "primary_diagnosis": "250.83",
+            "readmitted": ">30",
+            "attention": 0.7841278910636902
+          },
+          {
+            "encounter_id": 125648112,
+            "primary_diagnosis": "250.8",
+            "readmitted": ">30",
+            "attention": 0.1313840001821518
+          },
+          {
+            "encounter_id": 179053080,
+            "primary_diagnosis": "250.82",
+            "readmitted": ">30",
+            "attention": 0.025494800880551338
+          },
+          {
+            "encounter_id": 201338118,
+            "primary_diagnosis": "250.8",
+            "readmitted": ">30",
+            "attention": 0.05597031116485596
+          },
+          {
+            "encounter_id": 221184822,
+            "primary_diagnosis": "276",
+            "readmitted": ">30",
+            "attention": 0.0030230043921619654
+          }
+        ]
+      }
+    ]
+  }
+}

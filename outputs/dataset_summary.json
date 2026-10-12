@@ -1,0 +1,53 @@
+{
+  "source": "Diabetes 130-US Hospitals 1999-2008 (UCI id 296; Strack et al., 2014)",
+  "raw_encounters": 101766,
+  "cohort_encounters": 99340,
+  "patients": 69987,
+  "patients_with_repeat_encounters": 16341,
+  "encounters_with_history": 29353,
+  "max_encounters_per_patient": 40,
+  "readmit30_rate": 0.1138916851218039,
+  "escalation_samples": 29353,
+  "escalation_rate": 0.3497768541546009,
+  "encounters_per_patient": {
+    "1": 53646,
+    "2": 10218,
+    "3": 3233,
+    "4": 1354,
+    "5": 691,
+    "6": 845
+  },
+  "race": {
+    "Caucasian": 74220,
+    "AfricanAmerican": 18772,
+    "Unknown": 2232,
+    "Hispanic": 2017,
+    "Other": 1471,
+    "Asian": 628
+  },
+  "gender": {
+    "Female": 53454,
+    "Male": 45886
+  },
+  "age": {
+    "[70-80)": 25329,
+    "[60-70)": 22058,
+    "[50-60)": 17060,
+    "[80-90)": 16434,
+    "[40-50)": 9607,
+    "[30-40)": 3764,
+    "[90-100)": 2589,
+    "[20-30)": 1649,
+    "[10-20)": 690,
+    "[0-10)": 160
+  },
+  "a1c": {
+    "None": 82506,
+    ">8": 8137,
+    "Norm": 4922,
+    ">7": 3775
+  },
+  "time_in_hospital_mean": 4.379363801087175,
+  "num_medications_mean": 15.97905174149386,
+  "insulin_any": 0.5331588483994363
+}

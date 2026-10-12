@@ -1,0 +1,86 @@
+[
+  {
+    "task": "escalation",
+    "prior_encounters": "0",
+    "n": 3268,
+    "gate_history": 0.5289986729621887,
+    "gate_delta": 0.49207809567451477
+  },
+  {
+    "task": "escalation",
+    "prior_encounters": "1",
+    "n": 1188,
+    "gate_history": 0.5353406667709351,
+    "gate_delta": 0.4638136923313141
+  },
+  {
+    "task": "escalation",
+    "prior_encounters": "2",
+    "n": 559,
+    "gate_history": 0.5652242302894592,
+    "gate_delta": 0.49356427788734436
+  },
+  {
+    "task": "escalation",
+    "prior_encounters": "3",
+    "n": 284,
+    "gate_history": 0.5967056155204773,
+    "gate_delta": 0.5005289316177368
+  },
+  {
+    "task": "escalation",
+    "prior_encounters": "4",
+    "n": 159,
+    "gate_history": 0.6111718416213989,
+    "gate_delta": 0.4916369915008545
+  },
+  {
+    "task": "escalation",
+    "prior_encounters": "5+",
+    "n": 311,
+    "gate_history": 0.6033978462219238,
+    "gate_delta": 0.4967314898967743
+  },
+  {
+    "task": "readmit30",
+    "prior_encounters": "0",
+    "n": 13998,
+    "gate_history": 0.4860306978225708,
+    "gate_delta": 0.4512367844581604
+  },
+  {
+    "task": "readmit30",
+    "prior_encounters": "1",
+    "n": 3271,
+    "gate_history": 0.38212522864341736,
+    "gate_delta": 0.3508402705192566
+  },
+  {
+    "task": "readmit30",
+    "prior_encounters": "2",
+    "n": 1216,
+    "gate_history": 0.42888787388801575,
+    "gate_delta": 0.3987344801425934
+  },
+  {
+    "task": "readmit30",
+    "prior_encounters": "3",
+    "n": 562,
+    "gate_history": 0.37999555468559265,
+    "gate_delta": 0.38253360986709595
+  },
+  {
+    "task": "readmit30",
+    "prior_encounters": "4",
+    "n": 292,
+    "gate_history": 0.41166582703590393,
+    "gate_delta": 0.3737024664878845
+  },
+  {
+    "task": "readmit30",
+    "prior_encounters": "5+",
+    "n": 455,
+    "gate_history": 0.4419240355491638,
+    "gate_delta": 0.4007331132888794
+  }
+]
