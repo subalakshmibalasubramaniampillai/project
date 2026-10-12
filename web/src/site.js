@@ -1,13 +1,11 @@
-// Project identity shown in the header, the about page and the footer.
-// Edit these values; empty strings are simply not shown.
+// Product identity. Edit these values; empty strings are not shown.
 export const SITE = {
+  brand: "StayTrace",
+  tagline: "Discharge risk for people with diabetes, informed by every earlier hospital stay",
   title: "Readmission and treatment escalation in diabetes",
-  subtitle:
-    "A knowledge-gated sequence model tested on 99,340 real hospital stays",
   authors: "",
   affiliation: "",
   contact: "",
-  repository:
-    "https://github.com/subalakshmibalasubramaniampillai/project",
+  repository: "https://github.com/subalakshmibalasubramaniampillai/project",
   year: 2026,
 };

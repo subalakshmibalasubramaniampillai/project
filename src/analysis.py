@@ -353,6 +353,36 @@ def temporal_shift_summary(cohort):
     return out
 
 
+def risk_bands(runs):
+    """
+    Lower / moderate / higher risk bands for TKGN-B, cut at the 50th and
+    80th percentile of predicted risk on the first grouped test set, with
+    the share of test patients and the observed event rate in each band.
+    """
+    out = {}
+    for r in runs:
+        if r["split"] != "grouped" or r["repeat"] != 0 or r["train_fraction"] < 1.0:
+            continue
+        data = _npz(r["name"])
+        if "p_tkgn_b" not in data.files:
+            continue
+        p = data["p_tkgn_b"].astype(float)
+        y = data["y"].astype(int)
+        cut1, cut2 = np.quantile(p, [0.5, 0.8])
+        bands = []
+        for name, lo, hi in (("lower", 0.0, cut1), ("moderate", cut1, cut2),
+                             ("higher", cut2, 1.01)):
+            sel = (p >= lo) & (p < hi)
+            bands.append({"band": name, "from": float(lo), "to": float(min(hi, 1.0)),
+                          "share": float(sel.mean()),
+                          "observed_rate": float(y[sel].mean()),
+                          "n": int(sel.sum())})
+        out[r["task"]] = {"overall_rate": float(y.mean()), "n": int(len(y)),
+                          "cut_moderate": float(cut1), "cut_higher": float(cut2),
+                          "bands": bands}
+    return out
+
+
 def aggregate():
     from .data import build_cohort, grouped_split
     from .knowledge_graph import ClinicalKnowledgeGraph
@@ -377,6 +407,7 @@ def aggregate():
     save_json(_ablation(runs), OUT / "ablation.json")
     save_json(_learning_curve(runs, cohort), OUT / "learning_curve.json")
     save_json(_gates(runs, cohort), OUT / "gates.json")
+    save_json(risk_bands(runs), OUT / "risk_bands.json")
     _explorer(runs, cohort)
     splits = {}
     for r in runs:

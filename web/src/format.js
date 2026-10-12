@@ -34,8 +34,8 @@ export const MODELS = {
   gru: { name: "GRU", family: "sequence" },
   retain: { name: "RETAIN", family: "sequence" },
   transformer: { name: "Transformer", family: "sequence" },
-  tkgn: { name: "TKGN", family: "ours" },
-  tkgn_b: { name: "TKGN-B", family: "ours" },
+  tkgn: { name: "TKGN (history network alone)", family: "ours" },
+  tkgn_b: { name: "StayTrace (TKGN-B)", family: "ours" },
 };
 
 export const MODEL_ORDER = Object.keys(MODELS);
@@ -43,7 +43,7 @@ export const MODEL_ORDER = Object.keys(MODELS);
 export const FAMILIES = {
   standard: "Standard machine-learning models",
   sequence: "Published models that read the visit history",
-  ours: "Models developed in this project",
+  ours: "Developed in this project",
 };
 
 // chart roles: our final model, the strongest standard model, everything else

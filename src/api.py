@@ -11,6 +11,8 @@ Read-only result endpoints (produced by ``python -m src.run_pipeline``):
   GET  /api/kg-efficiency     knowledge graph vs flat codes under data scarcity
   GET  /api/temporal-shift    feature shift between temporal train/test periods
   GET  /api/paper.pdf         compiled manuscript
+  GET  /api/risk-bands        lower/moderate/higher bands with observed rates
+  GET  /api/examples          real held-out patients for the risk check
   GET  /api/subgroups         fairness / subgroup performance
   GET  /api/calibration       reliability curves
   GET  /api/learning-curve    performance vs training-set size
@@ -212,6 +214,48 @@ def patient(patient_nbr: int, task: str = "readmit30"):
     merged = merged.replace({np.nan: None})
     return {"patient_nbr": patient_nbr, "task": task,
             "encounters": merged.to_dict(orient="records")}
+
+
+INPUT_FIELDS = [
+    "age", "gender", "race", "admission_type_id", "discharge_disposition_id",
+    "admission_source_id", "time_in_hospital", "num_lab_procedures",
+    "num_procedures", "num_medications", "number_outpatient",
+    "number_emergency", "number_inpatient", "number_diagnoses", "diag_1",
+    "diag_2", "diag_3", "A1Cresult", "max_glu_serum", "insulin", "metformin",
+    "change", "diabetesMed", "readmitted",
+]
+
+
+@app.get("/api/examples")
+def examples(limit: int = 4):
+    """Real held-out patients (3 to 6 stays, mixed outcomes) for pre-filling
+    the risk check. The last stay is the one to assess; earlier stays carry
+    their recorded outcome."""
+    frame = _explorer()
+    frame = frame[frame.task == "readmit30"]
+    stats = frame.groupby("patient_nbr")["y"].agg(["size", "sum"])
+    chosen = stats[(stats["size"] >= 3) & (stats["size"] <= 6)
+                   & (stats["sum"] >= 1) & (stats["sum"] < stats["size"])]
+    chosen = chosen.sort_index().head(limit).index
+    cohort = _cohort()
+    out = []
+    for pid in chosen:
+        rows = cohort[cohort.patient_nbr == pid][INPUT_FIELDS]
+        stays = rows.replace({np.nan: None}).to_dict(orient="records")
+        for stay in stays:
+            for key in ("admission_type_id", "discharge_disposition_id",
+                        "admission_source_id"):
+                stay[key] = str(stay[key])
+        last = stays[-1]
+        out.append({"patient_nbr": int(pid), "stays": stays,
+                    "label": f"{len(stays)} stays, age {str(last['age']).strip('[)')}, "
+                             f"main diagnosis {last['diag_1']}"})
+    return out
+
+
+@app.get("/api/risk-bands")
+def risk_bands():
+    return _json("risk_bands.json")
 
 
 @app.get("/api/schema")

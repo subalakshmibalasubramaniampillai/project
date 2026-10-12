@@ -80,28 +80,34 @@ The raw file ships in `data/raw/diabetic_data.csv` and is verified by SHA-256
 before use; if it is missing it is downloaded from UCI (or an identical
 mirror) and verified again.
 
-## Web application (React + FastAPI)
+## StayTrace: the web application (React + FastAPI)
+
+The model is delivered as **StayTrace**, a website for care teams and for
+patients and families:
 
 ```bash
 cd web && npm install && npm run build && cd ..
-uvicorn src.api:app --reload        # http://127.0.0.1:8000
+uvicorn src.api:app        # http://127.0.0.1:8000
 ```
 
-The site has six pages written for a non-specialist reader:
+* **Home**: what StayTrace does, the five new ideas with the test result
+  behind each, and how well its risk bands separate patients.
+* **Check a patient**: the discharge risk check. Enter today's stay and any
+  earlier stays (or load a real held-out example patient) and get both
+  risks, readmission within 30 days and treatment step-up at the next stay,
+  as a percentage, a lower / moderate / higher band with the observed rate in
+  that band, and the main reasons. Printable summary.
+* **For patients**: a plain-language guide, factors linked with coming back
+  to hospital, and questions to ask before going home.
+* **Case studies**: real test patients, risk at every stay against what
+  happened.
+* **Evidence**: novelty, comparison with nine models, calibration, risk
+  bands, fairness, newest admissions, ablation and limitations, with the
+  manuscript download.
+* **About**: documents, data source and intended use.
 
-* **Summary**: the question, the data, the headline numbers and one chart.
-* **Results**: every model on both outcomes, significance in plain words,
-  what drives the predictions, and performance with less training data.
-* **How it works**: the data, the two outcomes, the model in four steps,
-  the test design and what each part of the model contributes.
-* **Reliability**: calibration, results by sex, race, age and history,
-  and behaviour on the newest admissions.
-* **Patients**: real held-out patients stay by stay, and a risk
-  calculator that scores a stay (with optional earlier stays) using TKGN-B.
-* **About**: documents, data source, intended use.
-
-Author names, affiliation and contact details are set in
-`web/src/site.js`; rebuild the site after editing it.
+The brand name, authors, affiliation and contact are set in
+`web/src/site.js`; rebuild after editing.
 
 For development: `cd web && npm run dev` (http://localhost:5173, proxies
 `/api` to port 8000).
@@ -118,6 +124,8 @@ For development: `cd web && npm run dev` (http://localhost:5173, proxies
 | GET | `/api/kg-efficiency` | knowledge graph under data scarcity |
 | GET | `/api/temporal-shift` | data shift between older and newest admissions |
 | GET | `/api/paper.pdf` | the compiled manuscript |
+| GET | `/api/risk-bands` | lower / moderate / higher bands with observed rates |
+| GET | `/api/examples` | real held-out patients for the risk check |
 | GET | `/api/learning-curve` | AUROC vs training-set size |
 | GET | `/api/calibration` | reliability curves |
 | GET | `/api/subgroups` | subgroup / fairness metrics |
