@@ -1,9 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 
-/**
- * Tiny hook that wraps an async data-fetching function with
- * loading / error / data state.
- */
 export function useFetch(fetcher, deps = []) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);

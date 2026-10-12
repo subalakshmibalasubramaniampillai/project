@@ -1,4 +1,3 @@
-"""Generate architecture and workflow diagrams for the paper using PIL (white background)."""
 from PIL import Image, ImageDraw, ImageFont
 
 OUT_W = 2200
