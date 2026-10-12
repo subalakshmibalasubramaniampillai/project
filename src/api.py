@@ -9,6 +9,8 @@ Read-only result endpoints (produced by ``python -m src.run_pipeline``):
   GET  /api/repeat-tests      per-repeat paired AUROC comparisons
   GET  /api/ablation          TKGN component ablation
   GET  /api/kg-efficiency     knowledge graph vs flat codes under data scarcity
+  GET  /api/temporal-shift    feature shift between temporal train/test periods
+  GET  /api/paper.pdf         compiled manuscript
   GET  /api/subgroups         fairness / subgroup performance
   GET  /api/calibration       reliability curves
   GET  /api/learning-curve    performance vs training-set size
@@ -61,6 +63,25 @@ def _json(name: str):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+@app.on_event("startup")
+def _warm_up():
+    """Load the cohort and prediction models in the background so the first
+    patient or calculator request does not wait for them."""
+    import threading
+
+    def work():
+        try:
+            _cohort()
+            _explorer()
+            from .inference import load_predictor
+            for task in ("readmit30", "escalation"):
+                load_predictor(task)
+        except Exception:  # missing outputs are reported by the endpoints
+            pass
+
+    threading.Thread(target=work, daemon=True).start()
+
+
 @app.get("/health")
 def health():
     return {"status": "ok",
@@ -96,6 +117,20 @@ def ablation():
 @app.get("/api/kg-efficiency")
 def kg_efficiency():
     return _json("kg_efficiency.json")
+
+
+@app.get("/api/temporal-shift")
+def temporal_shift():
+    return _json("temporal_shift.json")
+
+
+@app.get("/api/paper.pdf")
+def paper_pdf():
+    path = ROOT / "paper" / "main.pdf"
+    if not path.exists():
+        raise HTTPException(404, "manuscript PDF not built")
+    return FileResponse(str(path), media_type="application/pdf",
+                        filename="tkgn-manuscript.pdf")
 
 
 @app.get("/api/subgroups")
@@ -147,10 +182,11 @@ def _explorer():
 def patients(task: str = "readmit30", limit: int = 300):
     frame = _explorer()
     frame = frame[frame.task == task]
-    counts = (frame.groupby("patient_nbr").size()
-              .sort_values(ascending=False).head(limit))
-    return [{"patient_nbr": int(p), "encounters": int(n)}
-            for p, n in counts.items()]
+    stats = (frame.groupby("patient_nbr")["y"].agg(["size", "sum"])
+             .sort_values("size", ascending=False).head(limit))
+    return [{"patient_nbr": int(p), "encounters": int(row["size"]),
+             "events": int(row["sum"])}
+            for p, row in stats.iterrows()]
 
 
 ENCOUNTER_FIELDS = [

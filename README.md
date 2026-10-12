@@ -87,10 +87,21 @@ cd web && npm install && npm run build && cd ..
 uvicorn src.api:app --reload        # http://127.0.0.1:8000
 ```
 
-Pages: results, statistics, ablation, data efficiency, calibration,
-fairness, explainability, knowledge graph, patient explorer (real held-out
-test patients) and a risk calculator that scores a posted encounter
-history with TKGN-B.
+The site has six pages written for a non-specialist reader:
+
+* **Summary**: the question, the data, the headline numbers and one chart.
+* **Results**: every model on both outcomes, significance in plain words,
+  what drives the predictions, and performance with less training data.
+* **How it works**: the data, the two outcomes, the model in four steps,
+  the test design and what each part of the model contributes.
+* **Reliability**: calibration, results by sex, race, age and history,
+  and behaviour on the newest admissions.
+* **Patients**: real held-out patients stay by stay, and a risk
+  calculator that scores a stay (with optional earlier stays) using TKGN-B.
+* **About**: documents, data source, intended use.
+
+Author names, affiliation and contact details are set in
+`web/src/site.js`; rebuild the site after editing it.
 
 For development: `cd web && npm run dev` (http://localhost:5173, proxies
 `/api` to port 8000).
@@ -105,6 +116,8 @@ For development: `cd web && npm run dev` (http://localhost:5173, proxies
 | GET | `/api/repeat-tests` | paired comparison across repeats |
 | GET | `/api/ablation` | TKGN component ablation |
 | GET | `/api/kg-efficiency` | knowledge graph under data scarcity |
+| GET | `/api/temporal-shift` | data shift between older and newest admissions |
+| GET | `/api/paper.pdf` | the compiled manuscript |
 | GET | `/api/learning-curve` | AUROC vs training-set size |
 | GET | `/api/calibration` | reliability curves |
 | GET | `/api/subgroups` | subgroup / fairness metrics |

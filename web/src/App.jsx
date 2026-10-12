@@ -1,68 +1,67 @@
-import React from "react";
-import { Routes, Route, NavLink, Navigate } from "react-router-dom";
-import Overview from "./pages/Overview";
-import Statistics from "./pages/Statistics";
-import Ablation from "./pages/Ablation";
-import LearningCurve from "./pages/LearningCurve";
-import Calibration from "./pages/Calibration";
-import Fairness from "./pages/Fairness";
-import Explainability from "./pages/Explainability";
-import KnowledgeGraph from "./pages/KnowledgeGraph";
-import PatientExplorer from "./pages/PatientExplorer";
-import RiskCalculator from "./pages/RiskCalculator";
+import React, { useEffect } from "react";
+import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import About from "./pages/About";
+import Method from "./pages/Method";
+import Patients from "./pages/Patients";
+import Reliability from "./pages/Reliability";
+import Results from "./pages/Results";
+import Summary from "./pages/Summary";
+import { SITE } from "./site";
 
 const NAV = [
-  { to: "/", label: "Results", end: true },
-  { to: "/statistics", label: "Statistics" },
-  { to: "/ablation", label: "Ablation" },
-  { to: "/learning-curve", label: "Data efficiency" },
-  { to: "/calibration", label: "Calibration" },
-  { to: "/fairness", label: "Fairness" },
-  { to: "/explain", label: "Explainability" },
-  { to: "/graph", label: "Knowledge graph" },
-  { to: "/patients", label: "Patient explorer" },
-  { to: "/calculator", label: "Risk calculator" },
+  { to: "/", label: "Summary", end: true },
+  { to: "/results", label: "Results" },
+  { to: "/method", label: "How it works" },
+  { to: "/reliability", label: "Reliability" },
+  { to: "/patients", label: "Patients" },
+  { to: "/about", label: "About" },
 ];
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => window.scrollTo(0, 0), [pathname]);
+  return null;
+}
+
 export default function App() {
+  const byline = [SITE.authors, SITE.affiliation].filter(Boolean).join(" · ");
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark">◇</span>
-          <div>
-            <h1>TKGN Lab</h1>
-            <p>Knowledge-graph temporal modelling on real diabetes inpatient records</p>
-          </div>
+    <>
+      <ScrollToTop />
+      <header className="masthead">
+        <div className="masthead-inner">
+          <NavLink to="/" className="site-title">{SITE.title}</NavLink>
+          <div className="site-byline">{byline || SITE.subtitle}</div>
+          <nav className="nav" aria-label="Main">
+            {NAV.map((item) => (
+              <NavLink key={item.to} to={item.to} end={item.end}
+                className={({ isActive }) => (isActive ? "active" : "")}>
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
-        <nav className="topnav">
-          {NAV.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end}
-              className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
       </header>
-      <main className="content">
+      <main className="page">
         <Routes>
-          <Route path="/" element={<Overview />} />
-          <Route path="/statistics" element={<Statistics />} />
-          <Route path="/ablation" element={<Ablation />} />
-          <Route path="/learning-curve" element={<LearningCurve />} />
-          <Route path="/calibration" element={<Calibration />} />
-          <Route path="/fairness" element={<Fairness />} />
-          <Route path="/explain" element={<Explainability />} />
-          <Route path="/graph" element={<KnowledgeGraph />} />
-          <Route path="/patients" element={<PatientExplorer />} />
-          <Route path="/calculator" element={<RiskCalculator />} />
+          <Route path="/" element={<Summary />} />
+          <Route path="/results" element={<Results />} />
+          <Route path="/method" element={<Method />} />
+          <Route path="/reliability" element={<Reliability />} />
+          <Route path="/patients" element={<Patients />} />
+          <Route path="/about" element={<About />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <footer className="footer">
-        Data: Diabetes 130-US Hospitals 1999–2008 (UCI, CC BY 4.0). Research and
-        decision-support prototype — not a diagnostic tool.
+        <div className="footer-inner">
+          <span>
+            Data: Diabetes 130-US Hospitals, 1999 to 2008 (UCI Machine Learning
+            Repository, CC BY 4.0).
+          </span>
+          <span>Research prototype. Not for clinical use.</span>
+        </div>
       </footer>
-    </div>
+    </>
   );
 }
