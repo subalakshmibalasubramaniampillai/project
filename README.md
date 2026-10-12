@@ -90,6 +90,12 @@ cd web && npm install && npm run build && cd ..
 uvicorn src.api:app        # http://127.0.0.1:8000
 ```
 
+On Windows, double-click `start.bat`. It stops any earlier copy of the site
+(including an old `npm run dev` server on port 5173), installs anything
+missing, rebuilds the website, starts the server and opens
+http://127.0.0.1:8000 in the browser. Keep its window open while using the
+site.
+
 * **Home**: what StayTrace does, the five new ideas with the test result
   behind each, and how well its risk bands separate patients.
 * **Check a patient**: the discharge risk check. Enter today's stay and any

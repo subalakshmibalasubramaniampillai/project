@@ -295,17 +295,22 @@ def predict(req: PredictRequest):
 
 # ── static React build ───────────────────────────
 WEB_DIST = ROOT / "web" / "dist"
+# index.html names the hashed bundle of the current build, so the browser
+# must fetch it fresh every time or it keeps showing an earlier build.
+NO_STORE = {"Cache-Control": "no-store"}
 if WEB_DIST.exists():
     app.mount("/assets", StaticFiles(directory=str(WEB_DIST / "assets")),
               name="assets")
 
     @app.get("/")
     def serve_index():
-        return FileResponse(str(WEB_DIST / "index.html"))
+        return FileResponse(str(WEB_DIST / "index.html"), headers=NO_STORE)
 
     @app.get("/{full_path:path}")
     def serve_spa(full_path: str):
+        if full_path == "api" or full_path.startswith("api/"):
+            raise HTTPException(404, f"Unknown endpoint /{full_path}")
         candidate = (WEB_DIST / full_path).resolve()
         if candidate.is_file() and WEB_DIST.resolve() in candidate.parents:
             return FileResponse(str(candidate))
-        return FileResponse(str(WEB_DIST / "index.html"))
+        return FileResponse(str(WEB_DIST / "index.html"), headers=NO_STORE)
